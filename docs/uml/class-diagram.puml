@@ -1,0 +1,100 @@
+@startuml
+title MEGA BRAIN — Diagrama de Classes (domínio de automação)
+
+abstract class Agente {
+  + nome: string
+  + executar(tarefa: Tarefa)
+}
+
+class HermesAgent extends Agente {
+  + dispararHooks(pre: bool, pos: bool)
+}
+
+class Vault {
+  + caminho: string
+  + notas: Nota[]
+  + ler(caminho: string): Nota
+  + escrever(caminho: string, conteudo: string)
+  + buscar(query: string): Nota[]
+}
+
+class Nota {
+  + caminho: string
+  + frontmatter: map
+  + corpo: string
+  + tags: string[]
+  + links: string[]
+}
+
+class MCPServer {
+  + porta: int = 8770
+  + handler: Handler
+  + start()
+  + stop()
+}
+
+class Handler {
+  + do_GET()
+  + do_POST()
+  + health(): json
+  + search(q: string): json
+  + read(path: string): json
+  + write(path: string, content: string): json
+  + append(path: string, content: string): json
+  + link(n1: string, n2: string): json
+  + tag(note: string, tags: string[]): json
+  + moc(topic: string): json
+}
+
+class Hook {
+  + tipo: enum {pre, post}
+  + Tarefa: string
+  + Projeto: string
+  + Resultado: string
+  + Resumo: string
+  + Invoke-LightReindexIfNeeded()
+  + registrarDailyNote()
+}
+
+class ReindexHybrid {
+  + modo: enum {light, deep}
+  + executar()
+  + gerarDashboard()
+  + preencherPlaceholders()
+}
+
+class Watcher {
+  + debounce_ms: int = 2000
+  + monitorar(vault: Vault)
+}
+
+class BackupManager {
+  + root: string
+  + full()
+  + incremental()
+  + restore(zip: string)
+}
+
+class Scheduler {
+  + agendar(tarefa: string, cron: string)
+}
+
+class Config {
+  + modos: map
+  + mcp_server_url: string
+  + auto_reindex: json
+}
+
+HermesAgent --> Hook : dispara
+Hook --> Vault : consulta/registra
+Hook --> ReindexHybrid : Invoke-LightReindexIfNeeded
+MCPServer *-- Handler
+Handler --> Vault : lê/escreve
+ReindexHybrid --> Vault : gera INDEX_GERAL.md
+Watcher --> Vault : monitora
+BackupManager --> Vault : copia
+Scheduler --> ReindexHybrid : agenda
+Scheduler --> BackupManager : agenda
+Config <-- MCPServer : carrega url
+Config <-- ReindexHybrid : carrega auto_reindex
+@enduml

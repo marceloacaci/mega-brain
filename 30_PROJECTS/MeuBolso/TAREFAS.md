@@ -13,11 +13,12 @@ criado: 2026-08-22
 > 100% entregue (126/126 testes Vitest). Próximo salto = **confiança nos
 > números** e **retenção pelo hábito**.
 
-## 🔴 S7 — Integridade numérica (prioridade 0)
-- **S7-C11** — dinheiro em centavos inteiros (evita deriva de float; hoje `0.1+0.2≠0.3`).
-- **S7-C12** — `hoje()` em fuso de Brasília (corrige vencimentos com 1 dia de defasagem perto da meia-noite).
-- **S7-E4** — alinhar tabela `NIVEIS` × `nivelDe()` (nível correto em todo o XP).
-- Suíte de regressão do domínio. `npm run test` deve continuar verde.
+## 🔴 S7 — Integridade numérica (prioridade 0) — ✅ CONCLUÍDO (22/ago, commit 04d599f)
+- **C11** (centavos): já resolvido no código (`somaDinheiro`/`numDinheiro` em centavos); travado por teste.
+- **C12** (fuso BR): `hoje()` agora delega a `hojeLocal()` (src/dominio.js, data local sem UTC); removido comentário stale que dizia "UTC". Travado por teste (23h30 Brasília = dia corrente).
+- **E4** (NÍVEIS × nivelDe): tabela não-linear + `nivelDe()` iterando a tabela; travado por teste (600XP→n6, 1600XP→n10).
+- Suíte de regressão: `tests/s7-regressao.test.js` (145 testes no total, verdes).
+- Próximo: S8 (auditoria).
 
 ## 🟠 S8 — Confiança & auditoria
 - **S8-C10** — unificar handlers IPC duplicados (`dados:salvar` == `dados:salvar-agora`).
@@ -38,8 +39,11 @@ criado: 2026-08-22
 
 ## 🎨 Correções de UI descobertas na auditoria (22/ago)
 - **UI-1 (P3 doc-stale) — RESOLVIDO (22/ago):** mantém-se **70%** (ajustado de 85% no working tree). DECISOES/README atualizados para 70%.
-- **UI-2 (P1 exceções):** `.btn-primary:hover` muda `background` (permitido, botão colorido), mas `.btn-icon.danger:hover`, `.fab-mobile:hover`, `.notif-dd-item.active:hover` mudam cor — confirmar se são intencionais ou violar P1.
-- **UI-3:** `.gear-opt:not(.active):hover` recoloria ícone para `var(--text)` — já há comentário no CSS a remover isso; verificar se restou.
+- **UI-2 (P1 hover) — RESOLVIDO (22/ago, commit 645a660):**
+  - `.btn-icon.danger:hover` era CSS MORTO (0 elementos com `.danger` no app) → removido.
+  - `.notif-dd-item.active:hover` recoloria (`color:#fff`) → corrigido para `box-shadow` (lift-only).
+  - `.fab-mobile:hover` mantido: FAB mobile de cor primária (igual a `.btn-primary`), só dispara em mobile (display:none no desktop). Documentado como exceção intencional.
+- **UI-3 (gear-opt ícone):** já havia comentário no CSS a remover o recolorir; confirmado que `.gear-opt:not(.active):hover` não recoloria ícone (usa só box-shadow). Sem ação necessária.
 
 ## ⛔ Fora do roadmap (decisão consciente)
 - A5 (orçamento 50/30/20), H2 (Open Finance), C4/C7 (Vite + SFCs) — mudam a proposta "offline/minimalista".

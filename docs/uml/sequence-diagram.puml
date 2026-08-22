@@ -1,0 +1,36 @@
+@startuml
+title MEGA BRAIN — Diagrama de Sequência (fluxo crítico: reindex automático via hook)
+
+actor User
+participant Hermes as "Hermes Agent"
+participant Pre as "pre_task_hook.ps1"
+participant Vault
+participant Post as "post_task_hook.ps1"
+participant Reindex as "reindex_hybrid.ps1"
+participant Log as ".last_light.txt"
+
+User -> Hermes: inicia tarefa (Projeto X)
+Hermes -> Pre: dispara -Tarefa -Projeto -Resultado
+Pre -> Vault: lê INDEX_GERAL.md + MOCs
+Vault --> Pre: contexto (padrões, preferências)
+Pre -> Vault: registra início no daily note
+Pre -> Pre: Invoke-LightReindexIfNeeded()
+Pre -> Log: lê timestamp
+alt última light > 4h (ou corrompido)
+    Pre -> Reindex: -Mode light
+    Reindex -> Vault: regenera INDEX_GERAL.md (placeholders)
+    Reindex -> Log: grava Get-Date -Format "o"
+else dentro da janela
+    Pre -> Pre: adiada (DEBUG)
+end
+Pre --> Hermes: "[HERMES-AGENT] 🧠 Cérebro consultado"
+
+Hermes -> Hermes: executa tarefa
+Hermes -> Post: dispara -Tarefa -Projeto -Resultado -Resumo
+Post -> Vault: registra execução no daily note
+Post -> Vault: atualiza métricas (metricas.json)
+Post -> Post: Invoke-LightReindexIfNeeded()
+Post -> Log: lê/grava timestamp (mesmo fluxo do pre)
+Post --> Hermes: "[HERMES-AGENT] 🧠 Cérebro atualizado"
+Hermes --> User: tarefa concluída
+@enduml

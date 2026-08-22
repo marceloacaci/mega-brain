@@ -7,24 +7,23 @@ tags: [meta/index]
 # 🧠 MEGA BRAIN — Índice Geral
 
 > Dashboard vivo do meu Segundo Cérebro.
-> Atualizado automaticamente pelo 
-eindex_hybrid.ps1 (light 6h + deep semanal).
+> Atualizado automaticamente pelo eindex_hybrid.ps1 (light 6h + deep semanal).
 
 ## ⏱️ Timestamps
-- **Última reindexação:** 2026-08-22 08:49:42
-- **Última light:** 2026-08-22T08:44:07.9220460-03:00
-- **Última deep:** 2026-08-22 08:49:42
-- **Próxima light:** 2026-08-22 14:44:07
+- **Última reindexação:** 2026-08-22 10:40:50
+- **Última light:** 2026-08-22T09:23:43.1625581-03:00
+- **Última deep:** 2026-08-22 10:40:50
+- **Próxima light:** 2026-08-22 15:23:43
 - **Próxima deep:** 2026-08-23 23:00:00
 
 ## ⏰ Status de Sincronização
 - MCP server: ONLINE (8770)
-- **Última sincronização:** 2026-08-22T08:44:07.9220460-03:00
+- **Última sincronização:** 2026-08-22T09:23:43.1625581-03:00
 
 ## 📊 Visão Geral
 - Projetos: 3
 - MOCs: 9
-- Notas (.md): 73
+- Notas (.md): 78
 
 ## 📂 Projetos Ativos
 ```dataview
@@ -111,5 +110,5 @@ LIMIT 4
 - [[PREFERENCIAS_PESSOAIS]] · [[PADROES_RECorrentes]] · [[DECISOES_REUTILIZAVEIS]] · [[STACKS_MAPeadas]]
 
 ## Métricas
-- Notas .md: 73 · Projetos: 3 · MOCs: 9
-- Última execução (deep): 2026-08-22 08:49:42
+- Notas .md: 78 · Projetos: 3 · MOCs: 9
+- Última execução (deep): 2026-08-22 10:40:50

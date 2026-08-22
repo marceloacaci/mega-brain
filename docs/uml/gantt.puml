@@ -1,0 +1,30 @@
+@startgantt
+title MEGA BRAIN - Cronograma (Gantt, 6 meses, buffer 20%)
+
+Project starts 2026-09-01
+
+[M1 Consolidacao] lasts 20 days
+[M2 Inteligencia] lasts 20 days
+[M3 Observabilidade] lasts 20 days
+[M4 Extensibilidade] lasts 20 days
+[M5 Resiliencia] lasts 20 days
+[M6 Polimento] lasts 20 days
+[Buffer 20 por cento] lasts 25 days
+
+[M1 Consolidacao] starts 2026-09-01
+[M2 Inteligencia] starts 2026-09-29
+[M3 Observabilidade] starts 2026-10-27
+[M4 Extensibilidade] starts 2026-11-24
+[M5 Resiliencia] starts 2026-12-22
+[M6 Polimento] starts 2026-01-19
+[Buffer 20 por cento] starts 2026-02-16
+
+[M1 Consolidacao] is colored in #2e6a4f
+[M2 Inteligencia] is colored in #3b82f6
+[M3 Observabilidade] is colored in #8b5cf6
+[M4 Extensibilidade] is colored in #f59e0b
+[M5 Resiliencia] is colored in #ef4444
+[M6 Polimento] is colored in #10b981
+[Buffer 20 por cento] is colored in #868e96
+
+@endgantt
