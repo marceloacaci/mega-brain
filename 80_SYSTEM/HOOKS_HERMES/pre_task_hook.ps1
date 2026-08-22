@@ -58,14 +58,36 @@ function Invoke-LightReindexIfNeeded {
     }
 }
 
-# ============================================
+# ============================================================
 # VERIFICAR SE REINDEX ESTÁ RODANDO
-# ============================================
+# ============================================================
 $lockFile = Join-Path $Vault "80_SYSTEM\LOGS\.reindex.lock"
 if (Test-Path $lockFile) {
     $lockAge = (Get-Date) - (Get-Item $lockFile).LastWriteTime
     if ($lockAge.TotalMinutes -lt 30) {
         Write-LogEntry "⏭️ Reindex em andamento ($($lockAge.TotalMinutes.ToString('0'))min), prosseguindo sem lock" "DEBUG"
+    }
+}
+
+# Modo preditivo (S3-1): sugere a nota mais relevante do projeto ANTES da tarefa.
+# Correlação leve (S3-2): nota sugerida + notas relacionadas em outros projetos.
+# Falha-segura: erro no script Python nunca interrompe o hook.
+function Invoke-PredictiveSuggestion {
+    $scriptPredict = Join-Path $PSScriptRoot "..\SCRIPTS\predictive.py"
+    if (-not (Test-Path $scriptPredict)) { return }
+    try {
+        $out = & python.exe $scriptPredict suggest --project $Projeto 2>$null | ConvertFrom-Json
+        if ($out.suggested) {
+            Write-Output ("[MEGA BRAIN 🔮] sugestão: abra ``" + $out.suggested + "`` (" + $out.reason + ")")
+            Write-LogEntry ("PREDITIVO sugerido='$($out.suggested)'") "INFO"
+            $corr = & python.exe $scriptPredict correlate --note $out.suggested 2>$null | ConvertFrom-Json
+            if ($corr.related -and $corr.related.Count -gt 0) {
+                $nomes = ($corr.related | ForEach-Object { $_.note }) -join ", "
+                Write-Output ("[MEGA BRAIN 🔗] correlacionadas: " + $nomes)
+            }
+        }
+    } catch {
+        Write-LogEntry ("Erro modo preditivo: $_") "WARN"
     }
 }
 
@@ -95,6 +117,9 @@ if (-not (Test-Path $Daily)) {
 # 4. Comando silencioso (1 linha)
 Write-Output ("[HERMES-AGENT] 🧠 Cérebro consultado → {0} resultados relevantes · {1} padrões detectados · {2} preferências aplicadas" -f $hits, $padroes, $prefs)
 Write-LogEntry ("PRE  tarefa='$Tarefa' projeto='$Projeto' hits=$hits") "INFO"
+
+# Modo preditivo + correlação (S3-1/S3-2): sugere nota relevante antes da tarefa
+Invoke-PredictiveSuggestion
 
 # Força reindex light se última > limite (config.json)
 Invoke-LightReindexIfNeeded
