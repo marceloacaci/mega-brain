@@ -1,0 +1,53 @@
+name: Validate MEGA BRAIN
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  python:
+    name: Python — MCP compile + smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile MCP server (syntax)
+        run: python -m py_compile "80_SYSTEM/SCRIPTS/mcp_obsidian_server.py"
+      - name: Smoke test do MCP
+        run: python tests/smoke_test.py
+
+  powershell:
+    name: PowerShell — syntax check dos hooks/scripts
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar PowerShell 7 (se necessario)
+        shell: pwsh
+        run: |
+          if (-not (Get-Command pwsh -ErrorAction SilentlyContinue)) {
+            Write-Host "pwsh ausente; assumindo acao ja possui"
+          }
+      - name: Validar sintaxe de todos os .ps1
+        shell: pwsh
+        run: |
+          $erros = 0
+          Get-ChildItem -Path "80_SYSTEM" -Recurse -Filter *.ps1 | ForEach-Object {
+            try {
+              $null = [scriptblock]::Create((Get-Content $_ -Raw))
+              Write-Host "OK  $($_.FullName)"
+            } catch {
+              $erros++
+              Write-Error "FAIL $($_.FullName): $_"
+            }
+          }
+          if ($erros -gt 0) { exit 1 }
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Smoke test (Windows)
+        shell: pwsh
+        run: python tests/smoke_test.py

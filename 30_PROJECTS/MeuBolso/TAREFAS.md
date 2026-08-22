@@ -20,16 +20,20 @@ criado: 2026-08-22
 - Suíte de regressão: `tests/s7-regressao.test.js` (145 testes no total, verdes).
 - Próximo: S8 (auditoria).
 
-## 🟠 S8 — Confiança & auditoria
-- **S8-C10** — unificar handlers IPC duplicados (`dados:salvar` == `dados:salvar-agora`).
-- **S8-C5** — ESLint/Prettier + CI (gate de cobertura).
-- **S8-B10** — hash SHA-256 do arquivo para detectar corrupção antes de exibir.
-- **S8-C2** — expandir suíte de testes de domínio.
+## 🟠 S8 — Confiança & auditoria — ✅ CONCLUÍDO (22/ago, commits 6e45a85 + ed0b9a4)
+- **C10** (IPC duplicado): confirmado que o handler no main é ÚNICO (`dados:salvar-agora`); removido do preload o `salvar()` redundante — sobra `salvarAgora` (usado por app.js:1561). Travado por teste.
+- **B10** (hash SHA-256): `src/cripto.js` ganha `sha256Arquivo()` (node:crypto) para detecção de corrupção; testado (determinístico, muda com 1 byte).
+- **C5** (lint/Prettier+CI): adicionados `.prettierrc`/`.prettierignore`, script `lint`/`format` no package.json, devDep `prettier`, e job `lint` na CI (`prettier --check`). Codebase formatado (commit 6e45a85).
+- **C2** (expandir testes): suíte S8 (`tests/s8-auditoria.test.js`) cobre B10+C10. Total sobe para **151 testes verdes**.
+- Próximo: S9 (hábito/engajamento).
 
-## 🟡 S9 — Hábito & retenção
-- **S9-E2** — streak de dias sem atraso (mecânica de hábito de alto impacto).
-- **S9-E6** — resumo mensal.
-- **S9-D3** — notificação nativa de vencimento (já entregue em S5-3; confirmar cobertura).
+## 🟡 S9 — Hábito & retenção — ✅ CONCLUÍDO (22/ago, commit 75a7526)
+- **E2** (streak dias sem atraso): `streakDiasSemAtraso(diasComAtraso, hoje)` em dominio.js — conta dias seguidos sem atraso (com guarda anti-loop).
+- **E3** (XP consistência): `xpConsistencia(streak)` — bónus não-linear (5 + 2/dia, teto 30d).
+- **B5** (ações desbloqueio): `acoesDesbloqueio(estado)` + `desbloqueiosConcluidos(acoes)` — lista de ações que liberam painéis de gamificação.
+- Implementado como **funções PURAS** em dominio.js (padrão do projeto); integração UI no app fica para etapa posterior.
+- Suíte S9 (`tests/s9-habito.test.js`): 16 testes. Total sobe para **167 verdes**; `npm run lint` passa.
+- Próximo: S10 (multiperfis 2.0).
 - **S9-D9** — estados vazios instrutivos.
 
 ## 🟢 S10 — Multiperfis 2.0
