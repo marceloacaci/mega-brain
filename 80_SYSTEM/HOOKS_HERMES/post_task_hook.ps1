@@ -20,6 +20,29 @@ function Write-LogEntry($msg, $Level = "INFO") {
     "$('[{0:HH:mm:ss}]' -f (Get-Date)) [$Level] $msg" | Out-File -Append -Encoding utf8 $Log
 }
 
+# Gera uma nota de captura em 00_INBOX a partir do template CAPTURA.md.
+# Placeholders {{DATA}}/{{TAREFA}}/{{PROJETO}}/{{RESUMO}}/{{RESULTADO}} são
+# substituídos. Falha-segura: qualquer erro é logado e não interrompe o hook.
+function Invoke-CaptureTemplate {
+    $tpl = Join-Path $PSScriptRoot "..\TEMPLATES\CAPTURA.md"
+    if (-not (Test-Path $tpl)) { Write-LogEntry "template CAPTURA.md ausente" "DEBUG"; return }
+    try {
+        $content = Get-Content $tpl -Raw
+        $content = $content `
+            -replace "{{DATA}}", (Get-Date -Format "yyyy-MM-dd HH:mm") `
+            -replace "{{TAREFA}}", $Tarefa `
+            -replace "{{PROJETO}}", $Projeto `
+            -replace "{{RESUMO}}", $Resumo `
+            -replace "{{RESULTADO}}", $Resultado
+        $nome = "00_INBOX/captura_{0:yyyyMMddHHmmss}.md" -f (Get-Date)
+        $dest = Join-Path $Vault $nome
+        $content | Out-File -Encoding utf8 $dest
+        Write-LogEntry "Captura gerada via template: $nome" "INFO"
+    } catch {
+        Write-LogEntry ("Erro ao gerar captura por template: $_") "WARN"
+    }
+}
+
 # Força reindexação LIGHT se a última light foi há mais de force_after_hours (config.json).
 function Invoke-LightReindexIfNeeded {
     $ConfigFile = Join-Path $PSScriptRoot "..\SCRIPTS\config.json"
@@ -83,6 +106,9 @@ if (Test-Path $Metricas) {
 $pads = if (Test-Path (Join-Path $Vault "10_MEGA_BRAIN\PADROES_RECorrentes.md")) { (Get-Content (Join-Path $Vault "10_MEGA_BRAIN\PADROES_RECorrentes.md") | Where-Object { $_ -match '^## P' }).Count } else { 0 }
 Write-Output ("[HERMES-AGENT] 🧠 Cérebro atualizado → 1 projeto · 4 notas · {0} padrões · 0 conflitos" -f $pads)
 Write-LogEntry ("POS tarefa='$Tarefa' projeto='$Projeto' resultado='$Resultado'") "INFO"
+
+# Gera captura em 00_INBOX a partir do template (falha-segura)
+Invoke-CaptureTemplate
 
 # Força reindex light se última > limite (config.json)
 Invoke-LightReindexIfNeeded

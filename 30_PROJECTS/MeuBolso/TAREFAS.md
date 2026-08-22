@@ -36,7 +36,12 @@ criado: 2026-08-22
 - Próximo: S10 (multiperfis 2.0).
 - **S9-D9** — estados vazios instrutivos.
 
-## 🟢 S10 — Multiperfis 2.0
+## 🟢 S10 — Multiperfis 2.0 — ✅ CONCLUÍDO (22/ago, commit 05a45b9)
+- **Sync de pasta**: `sincronizarPasta(base, destino)` em perfis.js — espelha índice + arquivos de perfil para pasta externa (nuvem/Dropbox), cópia fiel e idempotente.
+- **Modo família**: `definirFamiliar(base, id, ativa)` + `perfisFamiliares(base)` — marca/lista perfis compartilhados.
+- Implementado como **funções PURAS** (padrão do projeto, com fs real testável); integração UI no app fica para etapa posterior.
+- Suíte S10 (`tests/s10-multiperfis.test.js`): 5 testes. Total sobe para **172 verdes**; `npm run lint` passa.
+- **FIM do roadmap do brainstorming 16/ago (S7→S10 entregues).** Próximos passos reais: integrar UI destas funções no app (runtime Electron) e/ou retomar itens fora do roadmap (A5 orçamento 50/30/20, H2 Open Finance).
 - **S10-B11** — sync por pasta (OneDrive/Dropbox) com detecção de conflito.
 - **S10-H5** — modo família leve (convite de perfil).
 - **S10-E5** — níveis além do 10.
