@@ -13,6 +13,8 @@
 #   link "<nota1.md>" "<nota2.md>"            → POST /link
 #   tag "<nota.md>" tag1,tag2                 → POST /tag
 #   moc "<topico>"                            → POST /moc
+#   rename "<arquivo.md>" "<novo.md>"         → POST /rename
+#   move "<arquivo.md>" "<pasta-destino>"     → POST /move
 #
 # Exemplos:
 #   megabrain.ps1 health
@@ -88,6 +90,16 @@ switch ($Comando.ToLower()) {
         $r = Invoke-MCP POST "$MCP/moc" @{ topic = $ArgsRest[0] }
         if ($r) { Write-Host "✅ moc: $($r.moc)" -ForegroundColor Green }
     }
+    'rename' {
+        if (-not $ArgsRest -or -not $ArgsRest[0] -or -not $ArgsRest[1]) { Write-Host "❌ uso: megabrain rename <arquivo.md> <novo.md>" -ForegroundColor Red; exit 1 }
+        $r = Invoke-MCP POST "$MCP/rename" @{ path = $ArgsRest[0]; new_name = $ArgsRest[1] }
+        if ($r) { Write-Host "✅ renomeado: $($r.renamed)" -ForegroundColor Green }
+    }
+    'move' {
+        if (-not $ArgsRest -or -not $ArgsRest[0] -or -not $ArgsRest[1]) { Write-Host "❌ uso: megabrain move <arquivo.md> <pasta-destino>" -ForegroundColor Red; exit 1 }
+        $r = Invoke-MCP POST "$MCP/move" @{ path = $ArgsRest[0]; new_dir = $ArgsRest[1] }
+        if ($r) { Write-Host "✅ movido: $($r.moved)" -ForegroundColor Green }
+    }
     default {
         Write-Host $SEP -ForegroundColor Cyan
         Write-Host "  MEGA BRAIN — comandos disponíveis" -ForegroundColor Cyan
@@ -101,5 +113,7 @@ switch ($Comando.ToLower()) {
         Write-Host "  link <n1.md> <n2.md>           Liga duas notas" -ForegroundColor White
         Write-Host "  tag <nota.md> t1,t2            Aplica tags a uma nota" -ForegroundColor White
         Write-Host "  moc <topico>                   Gera MOC do tópico" -ForegroundColor White
+        Write-Host "  rename <arquivo.md> <novo.md> Renomeia uma nota" -ForegroundColor White
+        Write-Host "  move <arquivo.md> <pasta>     Move uma nota para outra pasta" -ForegroundColor White
     }
 }

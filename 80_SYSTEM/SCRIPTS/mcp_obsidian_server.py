@@ -102,6 +102,35 @@ def moc(topic):
         content += "\n## Conexões\n- [[INDEX_GERAL]]\n"
     return write_note(rel, content)
 
+def rename_note(rel, new_name):
+    """Renomeia um arquivo .md preservando o diretório e o conteúdo.
+    new_name pode vir com ou sem extensão (.md é garantido)."""
+    fp = _vault_path(rel)
+    if not os.path.exists(fp):
+        return None
+    if not new_name.lower().endswith(".md"):
+        new_name += ".md"
+    new_fp = os.path.join(os.path.dirname(fp), new_name)
+    if os.path.abspath(new_fp) == os.path.abspath(fp):
+        return rel  # mesmo nome, nada a fazer
+    if os.path.exists(new_fp):
+        return None  # destino já existe: evita sobrescrever
+    os.rename(fp, new_fp)
+    return os.path.relpath(new_fp, VAULT).replace("\\", "/")
+
+def move_note(rel, new_dir):
+    """Move um arquivo .md para new_dir (relativo ao vault), preservando o nome."""
+    fp = _vault_path(rel)
+    if not os.path.exists(fp):
+        return None
+    dest_dir = _vault_path(new_dir)
+    os.makedirs(dest_dir, exist_ok=True)
+    new_fp = os.path.join(dest_dir, os.path.basename(fp))
+    if os.path.exists(new_fp):
+        return None  # destino já existe: evita sobrescrever
+    os.rename(fp, new_fp)
+    return os.path.relpath(new_fp, VAULT).replace("\\", "/")
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass  # silencioso
@@ -172,8 +201,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send({"tagged": tag(data["note"], data.get("tags", []))})
             if u.path == "/moc":
                 return self._send({"moc": moc(data["topic"])})
-        except KeyError as e:
-            return self._send({"error": f"missing field {e}"}, 400)
+            if u.path == "/rename":
+                new = rename_note(data["path"], data["new_name"])
+                return self._send({"renamed": new} if new is not None
+                                  else {"error": "not found"}, 404 if new is None else 200)
+            if u.path == "/move":
+                new = move_note(data["path"], data["new_dir"])
+                return self._send({"moved": new} if new is not None
+                                  else {"error": "not found"}, 404 if new is None else 200)
+        except Exception as e:
+            return self._send({"error": f"server error: {e}"}, 500)
         self._send({"error": "unknown endpoint"}, 404)
 
 def main():

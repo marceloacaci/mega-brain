@@ -122,6 +122,30 @@ def main():
         except Exception as e:
             results.append(("stats", False)); print(f"   erro stats: {e}")
 
+        # 5. rename (preserva conteudo)
+        try:
+            post_json(f"{base}/write", {"path": "40_AREAS/old.md", "content": "conteudo velho"})
+            rn = post_json(f"{base}/rename", {"path": "40_AREAS/old.md", "new_name": "new.md"})
+            rd2 = get_json(f"{base}/read?path=" + urllib.parse.quote("40_AREAS/new.md"))
+            exists_old = False
+            try:
+                get_json(f"{base}/read?path=" + urllib.parse.quote("40_AREAS/old.md"))
+                exists_old = True
+            except Exception:
+                pass
+            results.append(("rename", rn.get("renamed") == "40_AREAS/new.md" and rd2.get("content") == "conteudo velho" and not exists_old))
+        except Exception as e:
+            results.append(("rename", False)); print(f"   erro rename: {e}")
+
+        # 6. move (preserva nome)
+        try:
+            post_json(f"{base}/write", {"path": "40_AREAS/tomove.md", "content": "mover"})
+            mv = post_json(f"{base}/move", {"path": "40_AREAS/tomove.md", "new_dir": "70_MOCS"})
+            rd3 = get_json(f"{base}/read?path=" + urllib.parse.quote("70_MOCS/tomove.md"))
+            results.append(("move", mv.get("moved") == "70_MOCS/tomove.md" and rd3.get("content") == "mover"))
+        except Exception as e:
+            results.append(("move", False)); print(f"   erro move: {e}")
+
         proc.terminate()
         try:
             proc.wait(timeout=5)
