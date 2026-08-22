@@ -1,0 +1,22 @@
+# Obsidian local config (não versionar)
+.obsidian/
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Runtime logs e locks
+80_SYSTEM/LOGS/
+*.log
+*.lock
+
+# Ambientes virtuais
+venv/
+.venv/
+
+# Sistema / OS
+.DS_Store
+Thumbs.db
+
+# Backups gerados (fora do versionamento)
+Backups/

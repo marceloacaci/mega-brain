@@ -1,0 +1,42 @@
+{
+  "silent_mode": true,
+  "modes": {
+    "correlacionador": true,
+    "guardiao": true,
+    "preditivo": true,
+    "metrico": true,
+    "indexador": true
+  },
+  "mcp_server_url": "http://localhost:8770",
+  "vault_path": "D:\\Programas (Disco D)\\Obsidian\\cofres\\Marcelo IA Skills",
+  "log_retention_days": 30,
+  "watcher": {
+    "enabled": true,
+    "debounce_ms": 2000
+  },
+  "backup": {
+    "retention": {
+      "daily": 7,
+      "weekly": 4,
+      "monthly": 6,
+      "incremental_days": 30
+    },
+    "full_schedule": "02:00",
+    "root": "D:\\Backups\\Obsidian",
+    "enabled": true,
+    "incremental_interval_hours": 6
+  },
+  "auto_reindex": {
+    "light": {
+      "force_after_hours": 4,
+      "interval_hours": 6
+    },
+    "enabled": true,
+    "mode": "hybrid",
+    "deep": {
+      "day_of_week": "Sunday",
+      "time": "23:00"
+    }
+  },
+  "log_path": "D:\\Programas (Disco D)\\Obsidian\\cofres\\Marcelo IA Skills\\80_SYSTEM\\LOGS"
+}

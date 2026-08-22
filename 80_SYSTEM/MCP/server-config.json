@@ -1,0 +1,11 @@
+{
+  "command": "python",
+  "args": [
+    "D:\\Programas (Disco D)\\Obsidian\\cofres\\Marcelo IA Skills\\80_SYSTEM\\SCRIPTS\\mcp_obsidian_server.py"
+  ],
+  "env": {
+    "OBSIDIAN_VAULT": "D:\\Programas (Disco D)\\Obsidian\\cofres\\Marcelo IA Skills",
+    "SILENT_MODE": "true",
+    "LOG_LEVEL": "INFO"
+  }
+}
