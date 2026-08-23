@@ -48,3 +48,9 @@ WHERE contains(tags, "${tipo}") AND !contains(file.path, "${slug}")
 
 new Notice(`✅ Recurso '${nome}' criado`);
 %>
+
+[[novo_moc]]
+
+[[novo_padrao]]
+
+[[novo_projeto]]

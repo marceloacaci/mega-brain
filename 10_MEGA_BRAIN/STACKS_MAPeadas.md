@@ -29,3 +29,9 @@ Tecnologias, versões e compatibilidades conhecidas.
 - Vault: `D:\Programas (Disco D)\Obsidian\cofres\Marcelo IA Skills` (espaços no caminho — usar aspas/citar em shell).
 - Hermes skills: `C:\Users\Marcelo\AppData\Local\hermes\skills\`.
 - Home do usuário: `C:\Users\Marcelo`.
+
+[[STACK]]
+
+[[README]]
+
+[[MOC_JavaScript]]

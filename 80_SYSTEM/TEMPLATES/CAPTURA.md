@@ -16,4 +16,6 @@ tags: [captura, inbox]
 - Resultado: {{RESULTADO}}
 
 ## Links sugeridos
-- 
+-
+
+[[DECISAO]]

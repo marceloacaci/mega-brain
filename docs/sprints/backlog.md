@@ -80,3 +80,9 @@
 - **Performance**: Dado que o vault tem < 5000 notas, Quando `/search` é chamado, Então responde em < 500ms (sem cache) ou < 50ms (com cache Redis).
 - **Segurança**: Dado que um parâmetro contém `../`, Quando o hook sanitiza, Então o path é confinado a `VAULT_ROOT`.
 - **Resiliência**: Dado que `.last_light.txt` está corrompido, Quando `Invoke-LightReindexIfNeeded` roda, Então ele força reindex (não aborta).
+
+[[sprint-1]]
+
+[[README]]
+
+[[sprint-4]]

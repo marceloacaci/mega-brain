@@ -47,3 +47,9 @@ E o post_task_hook adiciona o resultado no daily note
   M3 (Observabilidade), M5 (Resiliência), M4 (Extensibilidade), M6 (Polimento).
 - Próximo: v2.0 (ver `docs/brainstorm.md`) — LLMs locais, multi-agent swarms,
   compressão de contexto.
+
+[[sprint-4]]
+
+[[sprint-9]]
+
+[[sprint-7]]

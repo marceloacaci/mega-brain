@@ -240,3 +240,9 @@ mega-brain/
 > Documentação detalhada: [`docs/architecture.md`](docs/architecture.md),
 > [`docs/uml/`](docs/uml/), [`docs/sprints/`](docs/sprints/),
 > [`docs/quality.md`](docs/quality.md), [`docs/brainstorm.md`](docs/brainstorm.md).
+
+[[architecture]]
+
+[[PROMPT_MESTRE_v2]]
+
+[[quality]]

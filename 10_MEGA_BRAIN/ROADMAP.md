@@ -246,3 +246,9 @@ Não tente configurar tudo de uma vez e já sair usando intensivamente. Faça as
 - **Semana 4:** O cérebro já estará "inteligente" — padrões surgirão sozinhos.
 
 O tempo é o ingrediente secreto. Quanto mais você usa, mais rico fica.
+
+[[PROMPT_MESTRE_v2]]
+
+[[README]]
+
+[[INTEGRACAO_HERMES_MEGABRAIN]]

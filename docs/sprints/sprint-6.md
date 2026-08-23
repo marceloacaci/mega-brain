@@ -47,3 +47,9 @@ S6-6 ─┘        ┘
 - [x] S6-7 `tests/e2e_backup.py` → 3/3 PASS
 - [x] S6-8 CI estendido (test-windows roda `e2e_backup.py`)
 - **Suíte local**: smoke 8/8 + debounce 4/4 + e2e hooks 4/4 + e2e backup 3/3
+
+[[sprint-7]]
+
+[[sprint-4]]
+
+[[sprint-1]]

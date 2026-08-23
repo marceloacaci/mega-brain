@@ -18,3 +18,7 @@ O cofre "Marcelo IA Skills" como Segundo Cérebro.
 
 ## Conexões
 - [[MOC_Automacao]] · [[INDEX_GERAL]] · [[PREFERENCIAS_PESSOAIS]]
+
+[[MOC_GERAL]]
+
+[[MOC_Python]]

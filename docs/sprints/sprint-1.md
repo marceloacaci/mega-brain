@@ -35,3 +35,9 @@ S1-4 ─┴─► S1-7
 - **CA-3**: Dado que o MCP está rodando, Quando `curl /health`, Então retorna `{"ok": true}`.
 - **CA-4**: Dado que `reindex_hybrid.ps1 -Mode deep` rodou, Quando leio `INDEX_GERAL.md`, Então ele foi regenerado por script (sem edição manual).
 - **CA-5**: Dado que o CI roda, Quando o PR é aberto, Então PSScriptAnalyzer + py_compile + smoke_test passam.
+
+[[sprint-4]]
+
+[[sprint-3]]
+
+[[sprint-6]]

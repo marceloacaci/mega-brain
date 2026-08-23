@@ -12,3 +12,9 @@ tags: [projeto/meubolso, decisao]
 - **Relevo raised**: metade clara em cima = `color-mix(in srgb, <cor> 70%, white)` (0%–50%), cor base embaixo (50%–100%). Valor atual: **70%** (ajustado de 85% em 22/ago/2026; mais subtil, decide-se manter).
 - **Commits PT-BR** (`feat:`/`fix:`/`ui:`/`test:`); **push sob confirmação**.
 - Último commit relevante: `dc66875` (S7 dropdown + raised).
+
+[[DECISOES_REUTILIZAVEIS]]
+
+[[PADROES_RECorrentes]]
+
+[[MOC_DevOps]]

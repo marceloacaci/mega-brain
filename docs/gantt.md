@@ -36,3 +36,5 @@ agendamento Windows, e refino de documentação.
 - Ambiente: Windows 10/11, Obsidian + Dataview, Python 3.10+, Git.
 
 > Versão renderizável em PlantUML: [`docs/uml/gantt.puml`](../uml/gantt.puml).
+
+[[chronogram]]

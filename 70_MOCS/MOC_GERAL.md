@@ -42,3 +42,9 @@ LIST
 FROM "70_MOCS"
 WHERE contains(tags, "moc") AND !contains(tags, "moc/raiz")
 ```
+
+[[novo_moc]]
+
+[[MOC_Obsidian]]
+
+[[INDEX_GERAL]]

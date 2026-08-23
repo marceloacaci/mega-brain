@@ -88,3 +88,9 @@ if(openInCurrentPane) {
   return;
 }
 ea.openFileInNewOrAdjacentLeaf(file);
+
+[[Add Link to Existing File and Open]]
+
+[[Add Next Step in Process]]
+
+[[Add Connector Point]]

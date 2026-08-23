@@ -60,3 +60,9 @@ Resultado: 7/7 OK, ficheiros confirmados no disco. (Resíduos de teste apagados 
 ## Limites (honestos)
 - Dashboard do vault (INDEX_GERAL, MOCs) depende do plugin **Dataview**, ainda não instalado na UI → índices mostram código bruto até instalar. Links `[[ ]]` estáticos já funcionam.
 - Captura automática das conversas só entra quando hooks/watcher estiverem prontos.
+
+[[SETUP_MEGABRAIN_HERMES]]
+
+[[AUTOINDEX_STACK]]
+
+[[ROADMAP]]

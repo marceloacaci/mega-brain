@@ -589,3 +589,9 @@ Resposta: O PROMPT MESTRE v2.0 acima é a versão atualizada que substitui o que
 
 ## Como atualizar
 Simplesmente substitua o prompt antigo pelo novo (v2.0) na configuração do Hermes Agent. Não há migração destrutiva — o novo prompt é compatível com tudo que já está instalado.
+
+[[ROADMAP]]
+
+[[README]]
+
+[[architecture]]

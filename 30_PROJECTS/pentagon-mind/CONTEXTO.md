@@ -26,3 +26,9 @@ Portal encomendado como "PENTAGON-MIND: Doutrina Militar, Tecnologia e Projeçõ
 
 ## Convenções de verificação (FCS)
 Servidor Node local (`assets/serve.cjs`) + `assets/verify.js` (node) + teste em browser real com leitura de `getComputedStyle`/DOM. Verificação capturou bug real: sintaxe inválida em `data/glossary.js` (`id: "europe":` → `,`).
+
+[[DECISOES]]
+
+[[README]]
+
+[[TAREFAS]]

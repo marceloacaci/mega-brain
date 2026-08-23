@@ -31,3 +31,9 @@ tags: ["projeto/pentagon-mind", "decisoes"]
 ## 6. Traduções de citações
 - **Decisão:** cada citação iipsis litteris (EN) recebe `<span class="quote-translation">` (PT) abaixo.
 - **Por quê:** atende requisito de tradução das frases em inglês.
+
+[[CONTEXTO]]
+
+[[STACK]]
+
+[[TAREFAS]]

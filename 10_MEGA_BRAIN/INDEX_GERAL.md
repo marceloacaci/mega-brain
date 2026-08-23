@@ -7,7 +7,8 @@ tags: [meta/index]
 # 🧠 MEGA BRAIN — Índice Geral
 
 > Dashboard vivo do meu Segundo Cérebro.
-> Atualizado automaticamente pelo eindex_hybrid.ps1 (light 6h + deep semanal).
+> Atualizado automaticamente pelo 
+eindex_hybrid.ps1 (light 6h + deep semanal).
 
 ## ⏱️ Timestamps
 - **Última reindexação:** 2026-08-22 10:40:50
@@ -112,3 +113,9 @@ LIMIT 4
 ## Métricas
 - Notas .md: 78 · Projetos: 3 · MOCs: 9
 - Última execução (deep): 2026-08-22 10:40:50
+
+[[README]]
+
+[[MOC_JavaScript]]
+
+[[MOC_GERAL]]

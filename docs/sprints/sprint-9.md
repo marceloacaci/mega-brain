@@ -52,3 +52,9 @@ Entao source="heuristic" e response nao vazia
 - Concluído em 2026-08-23. v2.0 funcional em modo fallback (CI Linux + dev Windows).
 - Ativação de IA real: setar `OLLAMA_URL` + `OLLAMA_MODEL` no `.env` (docker-compose)
   faz `/related`/`/suggest`/`/reason` usarem embeddings/Ollama automaticamente.
+
+[[sprint-8]]
+
+[[sprint-5]]
+
+[[sprint-4]]

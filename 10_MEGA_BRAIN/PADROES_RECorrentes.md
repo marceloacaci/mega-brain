@@ -32,3 +32,9 @@ Padrões detectados (≥2 ocorrências) ou impostos por preferência. Reutilizar
 ## P5 — Nunca destrutivo
 - Renomear release/tag = recriar (`gh release create`), não apagar. Remover asset só se pedido.
 - Não commitar/push sem confirmação (exceto quando o próprio Marcelo mandou "commitar tudo").
+
+[[PREFERENCIAS_PESSOAIS]]
+
+[[DECISOES]]
+
+[[DECISOES_REUTILIZAVEIS]]

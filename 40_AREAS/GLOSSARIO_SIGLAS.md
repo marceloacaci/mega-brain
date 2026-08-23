@@ -75,3 +75,5 @@ tags: ["projeto/pentagon-mind", "glossario", "referencia", "siglas"]
 
 ## V
 - **VANT** — *Veículo Aéreo Não Tripulado* (tradução pt-BR de UAV/UAS/drone).
+
+[[ONTOLOGIA]]

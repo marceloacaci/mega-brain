@@ -48,3 +48,5 @@ M1 Abrams · MQ-9 Reaper · MQ-1 Predator · F-15E · F-16 · F-22 · F-35 · B-
 
 ## Uso
 O backend (futuro) mapeia quais sistemas/doutrinas foram empregados por presidente em conflito específico via `data/ontology.json`.
+
+[[GLOSSARIO_SIGLAS]]

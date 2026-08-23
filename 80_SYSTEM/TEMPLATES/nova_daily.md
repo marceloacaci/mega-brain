@@ -48,3 +48,9 @@ WHERE file.name = "${hoje}"
 
 new Notice(`✅ Daily note de ${hoje} criada`);
 %>
+
+[[novo_moc]]
+
+[[novo_projeto]]
+
+[[novo_padrao]]

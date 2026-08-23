@@ -44,3 +44,9 @@ S4-3 ─┴─► S4-5 ─► S4-6
 - [x] S4-5 `ci-cd.yml` estendido (test-linux + test-windows)
 - [x] S4-6 qualidade documentada
 - **Suíte total verde**: smoke MCP 6/6 + debounce 4/4 + E2E hooks 4/4
+
+[[sprint-1]]
+
+[[sprint-6]]
+
+[[sprint-7]]

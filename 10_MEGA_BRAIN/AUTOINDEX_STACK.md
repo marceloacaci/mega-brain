@@ -45,3 +45,9 @@ Isto aplica-se à task corrente E a qualquer subtask (delegate_task, parallel).
 - Reindex deep é pesado; em tarefas muito frequentes usar light (6h agendado).
 - Conteúdo fora do vault (ex.: ficheiros em Desktop/Livro que não estão no vault)
   só é indexado se gravado no vault via MCP.
+
+[[SETUP_MEGABRAIN_HERMES]]
+
+[[INTEGRACAO_HERMES_MEGABRAIN]]
+
+[[ROADMAP]]

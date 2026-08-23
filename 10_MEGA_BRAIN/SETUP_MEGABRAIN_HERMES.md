@@ -43,3 +43,9 @@ Resumo do estado operacional da integração, gravado em 2026-08-21.
 - Ciclo completo 10/10 na 8770 (health→search→read→write→append→moc→tag→link→stats→read).
 - Teste de shell nova: skill carregou e indexou automaticamente.
 - Teste de ponta a ponta: artefato tocado → indexado → reindex deep detetou o projeto novo.
+
+[[AUTOINDEX_STACK]]
+
+[[INTEGRACAO_HERMES_MEGABRAIN]]
+
+[[ROADMAP]]

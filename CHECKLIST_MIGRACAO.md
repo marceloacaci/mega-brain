@@ -26,3 +26,9 @@
   (MEGA_BRAIN_Backup_Full / MEGA_BRAIN_Backup_Incremental, que ficaram sem trigger).
 - **Item 8 — comando de validação** (igual ao do BLOCO 9):
   `Get-ScheduledTask | Where { $_.TaskName -like 'MEGA_BRAIN_*' }`
+
+[[sprint-2]]
+
+[[ROADMAP]]
+
+[[sprint-1]]

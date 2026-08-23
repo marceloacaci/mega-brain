@@ -53,3 +53,5 @@ FROM "30_PROJECTS/pentagon-mind"
 
 ## 🕒 Histórico de Atualizações
 - **2026-08-21** — Projeto criado e indexado ao MEGA BRAIN; expansão com Trump 2, glossário, popups, explainers e atualização 2026.
+
+[[novo_projeto]]

@@ -110,3 +110,8 @@ atingidos em 2026-08-23. Ativação de IA real: `OLLAMA_URL` + `OLLAMA_MODEL` no
 - CI: `ci-cd.yml` roda lint (PSScriptAnalyzer+py_compile) + SAST (bandit+gitleaks) +
   test-linux (smoke + e2e_validate + debounce + e2e_v2 + **run_all**) + test-windows (E2E hooks + E2E backup) + build Docker.
 
+[[gantt]]
+
+[[sprint-8]]
+
+[[README]]

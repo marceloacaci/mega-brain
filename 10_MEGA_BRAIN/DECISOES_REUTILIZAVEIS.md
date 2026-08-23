@@ -28,3 +28,9 @@ Decisões já tomadas — reaplicar sem questionar.
 
 ## D6 — Identidade MeuBolso
 - Card "Desenvolvido por Marcelo Acácio" mantido; copyright "© 2026 MeuBolso".
+
+[[DECISOES]]
+
+[[PREFERENCIAS_PESSOAIS]]
+
+[[MOC_DevOps]]

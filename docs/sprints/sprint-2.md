@@ -34,3 +34,9 @@ S2-3 ─┴─► S2-5
 - **CA-3**: Dado que há execuções registradas, Quando leio `50_METRICS/`, Então há ≥1 nota com frontmatter válido.
 - **CA-4**: Dado que as tarefas foram instaladas, Quando rodo `Get-ScheduledTask | Where TaskName -like 'MEGA_BRAIN_*'`, Então aparecem como `Ready`.
 - **CA-5**: Dado que um backup foi criado, Quando `restore_backup.ps1` roda, Então o vault é restaurado do zip.
+
+[[sprint-3]]
+
+[[sprint-7]]
+
+[[sprint-6]]

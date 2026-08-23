@@ -25,3 +25,9 @@ tags: ["projeto/pentagon-mind", "tarefas"]
 - [ ] Expandir `data/glossary.js` com mais ~20 siglas (ex.: CCMD, NDS, NW, OSD)
 - [ ] Adicionar modo claro/escuro toggle
 - [ ] Subir para repositório (se solicitado)
+
+[[CONTEXTO]]
+
+[[DECISOES]]
+
+[[README]]

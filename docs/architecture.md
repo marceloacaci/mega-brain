@@ -179,3 +179,9 @@ Definido em [`.github/workflows/ci-cd.yml`](../.github/workflows/ci-cd.yml):
 - **E2E**: rodar `pre_task_hook.ps1` com params PT e confirmar daily note + reindex.
 - **Ferramentas**: PSScriptAnalyzer (PowerShell), `pytest`/`py_compile` (Python),
   `curl` (API), `docker compose run validate` (CI).
+
+[[README]]
+
+[[quality]]
+
+[[backlog]]

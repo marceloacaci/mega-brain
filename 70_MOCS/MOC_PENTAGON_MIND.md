@@ -38,3 +38,5 @@ TABLE status AS "Status", atualizado AS "Atualizado"
 FROM "30_PROJECTS/pentagon-mind"
 SORT file.name ASC
 ```
+
+[[MOC_GERAL]]

@@ -58,3 +58,9 @@ WHERE contains(tags, "padrao/${slug}")
 
 new Notice(`✅ Padrão '${nome}' registrado`);
 %>
+
+[[novo_recurso]]
+
+[[novo_moc]]
+
+[[novo_projeto]]

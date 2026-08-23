@@ -45,3 +45,9 @@ S5-3 ─┴─► S5-6
 - [x] S5-5 compose já tem os serviços; `main()` lê `MCP_HOST`/`MCP_PORT`/`REDIS_TTL_SECONDS`
 - [x] S5-6 `smoke_test.py` estendido (metrics + search_cache) → 8/8 PASS
 - **Suíte**: smoke 8/8 + debounce 4/4 + e2e 4/4 (ver Sprint 4)
+
+[[sprint-4]]
+
+[[sprint-7]]
+
+[[sprint-6]]

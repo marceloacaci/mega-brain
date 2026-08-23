@@ -80,3 +80,9 @@ FROM "${projetoPath}"
 
 new Notice(`✅ Projeto '${nome}' criado em ${projetoPath}`);
 %>
+
+[[novo_moc]]
+
+[[novo_recurso]]
+
+[[novo_padrao]]

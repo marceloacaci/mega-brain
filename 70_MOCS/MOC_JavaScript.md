@@ -15,3 +15,9 @@ JS, Electron, Vue, npm e front-end do MeuBolso.
 
 ## Conexões
 - [[MOC_DevOps]] · [[MeuBolso]] · [[PADROES_RECorrentes]]
+
+[[STACK]]
+
+[[README]]
+
+[[STACKS_MAPeadas]]

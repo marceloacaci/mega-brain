@@ -33,3 +33,9 @@ cd C:/Users/Marcelo/Desktop/EUA
 node assets/serve.cjs        # servir em http://127.0.0.1:8726/
 node assets/verify.js        # validação estática
 ```
+
+[[README]]
+
+[[DECISOES]]
+
+[[TAREFAS]]

@@ -70,3 +70,9 @@ python tests/smoke_test.py
 # SAST Python (se bandit instalado)
 bandit -r 80_SYSTEM/SCRIPTS 80_SYSTEM/MCP tests -ll
 ```
+
+[[README]]
+
+[[architecture]]
+
+[[sprint-1]]

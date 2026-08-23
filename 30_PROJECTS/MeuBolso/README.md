@@ -34,3 +34,9 @@ Gestão de dívidas, pagamentos, carteiras, metas, recorrências, juros, relató
 
 ## 🔗 Conexões
 - [[MOC_JavaScript]] · [[PADROES_RECorrentes]] · [[PREFERENCIAS_PESSOAIS]]
+
+[[STACKS_MAPeadas]]
+
+[[STACK]]
+
+[[CONTEXTO]]

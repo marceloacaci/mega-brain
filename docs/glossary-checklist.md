@@ -24,3 +24,9 @@
 - [ ] **Backup testado**: `restore_backup.ps1` consegue recuperar um zip.
 - [ ] **Sem bloqueio**: MCP usa `ThreadingHTTPServer` (não single-thread).
 - [ ] **Versionado**: mudanças passam por PR para `master`.
+
+[[backlog]]
+
+[[sprint-1]]
+
+[[INTEGRACAO_HERMES_MEGABRAIN]]

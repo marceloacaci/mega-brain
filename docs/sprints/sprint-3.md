@@ -31,3 +31,9 @@ S3-4 (paralelo)
 - **CA-2**: Dado que `40_AREAS/old.md` existe, Quando `megabrain.ps1 rename old.md new.md`, Então o vault reflete `40_AREAS/new.md` com o mesmo conteúdo.
 - **CA-3**: Dado que um template existe, Quando aplicado via `post_task_hook`, Então a nota é criada sem erro e segue o schema.
 - **CA-4**: Dado que `90_ALERTS/runbook.md` existe, Quando um alerta de integridade dispara, Então o runbook descreve o passo de recuperação.
+
+[[sprint-7]]
+
+[[sprint-1]]
+
+[[sprint-2]]

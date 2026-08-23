@@ -60,3 +60,9 @@
 Priorizar **Cache Redis** e **Dashboard Web** (alto impacto, baixa complexidade) em M3,
 e **Testes E2E** (reduz regressões). IA semântica (v2.0) só após consolidar a base
 heurística — evitando custo e dependência externa prematura.
+
+[[architecture]]
+
+[[README]]
+
+[[sprint-9]]

@@ -18,3 +18,7 @@ Mapa de conteúdo Python deste cofre.
 
 ## Conexões
 - [[MOC_Automacao]] · [[STACKS_MAPeadas]]
+
+[[MOC_LIVRO - Biblioteca de Reflexoes]]
+
+[[MOC_Obsidian]]

@@ -14,3 +14,5 @@ Builds, releases, versionamento e CI deste cofre.
 
 ## Conexões
 - [[MOC_JavaScript]] · [[MeuBolso]] · [[STACKS_MAPeadas]]
+
+[[DECISOES]]

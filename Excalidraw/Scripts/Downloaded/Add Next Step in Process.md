@@ -139,3 +139,9 @@ if(!isFirst) {
 }
 
 ea.selectElementsInView([ea.getElement(id)]);
+
+[[Add Link to Existing File and Open]]
+
+[[Add Link to New Page and Open]]
+
+[[Add Connector Point]]

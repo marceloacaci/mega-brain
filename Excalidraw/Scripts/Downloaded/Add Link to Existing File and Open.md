@@ -63,3 +63,9 @@ if(openInCurrentPane) {
   return;
 }
 ea.openFileInNewOrAdjacentLeaf(file);
+
+[[Add Link to New Page and Open]]
+
+[[Add Next Step in Process]]
+
+[[Add Connector Point]]

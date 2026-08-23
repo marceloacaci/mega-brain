@@ -33,3 +33,9 @@ Aplicar **silenciosamente** em toda tarefa. Não perguntar.
 
 ## Identidade
 - Nome do autor mantido no card "Desenvolvido por" do MeuBolso; linha de copyright é "© 2026 MeuBolso" (sem nome).
+
+[[DECISOES_REUTILIZAVEIS]]
+
+[[PADROES_RECorrentes]]
+
+[[DECISOES]]

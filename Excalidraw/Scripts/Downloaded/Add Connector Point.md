@@ -23,3 +23,9 @@ elements.forEach((el)=>{
   ea.addToGroup([el.id,ellipseId]);
 });
 await ea.addElementsToView(false,false,true);
+
+[[Add Link to Existing File and Open]]
+
+[[Add Next Step in Process]]
+
+[[Add Link to New Page and Open]]

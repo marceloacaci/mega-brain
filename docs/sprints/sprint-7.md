@@ -43,3 +43,9 @@ S7-1 ─► S7-4 ─┴─► S7-5 ─► S7-6 ─► S7-7
 - [x] S7-6 `tests/e2e_validate.py` → 2/2 PASS
 - [x] S7-7 CI estendido (test-linux roda `e2e_validate.py`)
 - **Suíte local**: smoke 8/8 + e2e_validate 2/2 + debounce 4/4 + e2e backup 3/3 + e2e hooks 4/4
+
+[[sprint-6]]
+
+[[sprint-3]]
+
+[[sprint-4]]

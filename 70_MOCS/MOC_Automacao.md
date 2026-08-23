@@ -19,3 +19,7 @@ Hooks, PowerShell, watchers e MCP que ligam Hermes Agent ↔ Obsidian.
 
 ## Conexões
 - [[MOC_Python]] · [[MOC_DevOps]] · [[INDEX_GERAL]]
+
+[[MOC_Obsidian]]
+
+[[SETUP_MEGABRAIN_HERMES]]

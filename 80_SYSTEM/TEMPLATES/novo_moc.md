@@ -59,3 +59,9 @@ WHERE contains(file.content, "${topico}")
 
 new Notice(`✅ MOC '${topico}' criado`);
 %>
+
+[[novo_recurso]]
+
+[[novo_padrao]]
+
+[[novo_projeto]]

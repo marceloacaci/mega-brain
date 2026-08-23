@@ -14,3 +14,9 @@ tags: [projeto/meubolso, stack/electron, stack/vue]
 - Testes: Vitest (`npm run test`, ~127)
 - Build: `npm run dist:win`; run: `npm start`
 - Repo: `marceloacaci/meubolso` (v2.1.0)
+
+[[MOC_JavaScript]]
+
+[[STACKS_MAPeadas]]
+
+[[README]]
