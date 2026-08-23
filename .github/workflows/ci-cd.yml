@@ -112,6 +112,9 @@ jobs:
       - name: Teste de validacao continua (M4) — /validate
         run: python tests/e2e_validate.py
 
+      - name: Suíte completa (orquestrador run_all)
+        run: python tests/run_all.py
+
       - name: Teste de debounce do watcher
         run: python tests/test_watcher_debounce.py
 
