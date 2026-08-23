@@ -15,7 +15,10 @@ import sys
 import tempfile
 
 VAULT = r"D:\Programas (Disco D)\Obsidian\cofres\Marcelo IA Skills"
-SCRIPTS = os.path.join(VAULT, "80_SYSTEM", "SCRIPTS")
+# SCRIPTS deve ser relativo ao proprio teste (repo clonado), nao ao vault
+# hardcoded — no CI o repo fica em D:\a\...\mega-brain, nao no vault real.
+HERE = os.path.dirname(os.path.abspath(__file__))
+SCRIPTS = os.path.abspath(os.path.join(HERE, "..", "80_SYSTEM", "SCRIPTS"))
 
 
 def run_pwsh(script, *args):
