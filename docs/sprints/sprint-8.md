@@ -41,7 +41,8 @@ E o post_task_hook adiciona o resultado no daily note
 - **CI**: step `Suíte completa (run_all)` no job test-linux.
 
 ## Status
-- Concluído em 2026-08-23. Todas as suítes verdes (run_all 6/6).
+- Concluído em 2026-08-23. Todas as suítes verdes (run_all 6/6 local, 4/4 CI Linux + Windows job).
+- **Tag `v1.0.0` (MVP) criada** em 2026-08-23 — marco de entrega do escopo M1–M6.
 - v1.0-MVP atinge: M1 (Bootstrap), M2 (Stack Real), S3 (Hooks), S4 (QA),
   M3 (Observabilidade), M5 (Resiliência), M4 (Extensibilidade), M6 (Polimento).
 - Próximo: v2.0 (ver `docs/brainstorm.md`) — LLMs locais, multi-agent swarms,
