@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MEGA BRAIN — Dashboard de Conhecimento</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.css" />
+  <style>
+    body { background: #0e1116; color: #e6e6e6; }
+    #graph { height: 60vh; border: 1px solid #2b3340; border-radius: 8px; background: #11161d; }
+    .node { stroke: #3b82f6; fill: #1e293b; }
+    .node.moc { fill: #7c3aed; }
+    .node.project { fill: #059669; }
+    .node.daily { fill: #d97706; }
+    .node.system { fill: #475569; }
+    .edge { stroke: #334155; stroke-opacity: 0.5; }
+    .stat { font-size: 1.6em; font-weight: 700; }
+    pre.metrics { background: #11161d; border: 1px solid #2b3340; padding: 1em; max-height: 240px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <div class="ui container" style="padding: 2em 0;">
+    <h1 class="ui header inverted">
+      <i class="brain icon"></i> MEGA BRAIN
+      <div class="sub header">Dashboard de Conhecimento &amp; Saúde do MCP</div>
+    </h1>
+
+    <div class="ui four small statistics">
+      <div class="statistic"><div class="value" id="stat-nodes">–</div><div class="label">Nós</div></div>
+      <div class="statistic"><div class="value" id="stat-edges">–</div><div class="label">Arestas</div></div>
+      <div class="statistic"><div class="value" id="stat-req">–</div><div class="label">Requisições</div></div>
+      <div class="statistic"><div class="value" id="stat-health">–</div><div class="label">Saúde</div></div>
+    </div>
+
+    <div class="ui grid" style="margin-top: 1.5em;">
+      <div class="ten wide column">
+        <h3 class="ui header inverted">Grafo de Conhecimento</h3>
+        <svg id="graph" width="100%"></svg>
+      </div>
+      <div class="six wide column">
+        <h3 class="ui header inverted">Busca Semântica</h3>
+        <div class="ui fluid action input">
+          <input id="q" type="text" placeholder="termo (ex: parcelas)" />
+          <button class="ui button primary" id="searchBtn">Buscar</button>
+        </div>
+        <div id="results" class="ui relaxed list" style="margin-top: 1em;"></div>
+        <h3 class="ui header inverted" style="margin-top: 1.5em;">Métricas (Prometheus)</h3>
+        <pre class="metrics" id="metrics">carregando…</pre>
+      </div>
+    </div>
+    <div class="ui tiny message" id="status"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.js"></script>
+  <script>
+    const MCP = (new URLSearchParams(location.search).get('mcp')) || 'http://localhost:8770';
+    const $ = (s) => document.querySelector(s);
+
+    async function loadGraph() {
+      const r = await fetch(`${MCP}/graph?k=3`);
+      const g = await r.json();
+      $('#stat-nodes').textContent = g.nodes.length;
+      $('#stat-edges').textContent = g.edges.length;
+      drawGraph(g);
+    }
+
+    function drawGraph(g) {
+      const svg = $('#graph');
+      svg.innerHTML = '';
+      const W = svg.clientWidth, H = svg.clientHeight;
+      const cx = W/2, cy = H/2, R = Math.min(W, H) * 0.42;
+      const pos = {};
+      g.nodes.forEach((n, i) => {
+        const a = (2*Math.PI*i) / g.nodes.length;
+        pos[n.id] = [cx + R*Math.cos(a), cy + R*Math.sin(a)];
+      });
+      const ns = 'http://www.w3.org/2000/svg';
+      g.edges.forEach(e => {
+        const [x1,y1] = pos[e.source] || [cx,cy];
+        const [x2,y2] = pos[e.target] || [cx,cy];
+        const line = document.createElementNS(ns, 'line');
+        line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+        line.setAttribute('class', 'edge');
+        line.setAttribute('stroke-width', Math.max(0.5, e.weight * 2));
+        svg.appendChild(line);
+      });
+      g.nodes.forEach(n => {
+        const [x,y] = pos[n.id] || [cx,cy];
+        const c = document.createElementNS(ns, 'circle');
+        c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 6);
+        c.setAttribute('class', 'node ' + (n.type || 'note'));
+        const t = document.createElementNS(ns, 'text');
+        t.setAttribute('x', x+9); t.setAttribute('y', y+4);
+        t.setAttribute('fill', '#9aa7b5'); t.setAttribute('font-size', '10');
+        t.textContent = n.label.slice(0, 22);
+        svg.appendChild(c); svg.appendChild(t);
+      });
+    }
+
+    async function search() {
+      const q = $('#q').value.trim();
+      if (!q) return;
+      const r = await fetch(`${MCP}/search?q=${encodeURIComponent(q)}&k=5`);
+      const data = await r.json();
+      const items = (data.results || []).map(x =>
+        `<div class="item"><div class="content"><div class="header">${x.path}</div>` +
+        `<div class="description">${x.snippet || ''}</div></div></div>`).join('');
+      $('#results').innerHTML = items || '<div class="item">sem resultados</div>';
+    }
+
+    async function loadMetrics() {
+      try {
+        const r = await fetch(`${MCP}/metrics`);
+        $('#metrics').textContent = await r.text();
+        const m = ($('#metrics').textContent.match(/mcp_requests_total (\d+)/) || [])[1];
+        if (m) $('#stat-req').textContent = m;
+      } catch (e) { $('#metrics').textContent = 'metrics indisponível'; }
+    }
+
+    async function health() {
+      try {
+        const r = await fetch(`${MCP}/health`);
+        const ok = (await r.json()).ok;
+        $('#stat-health').textContent = ok ? 'OK' : 'NOK';
+        $('#status').textContent = ok ? `Conectado a ${MCP}` : `Sem resposta de ${MCP}`;
+      } catch (e) { $('#stat-health').textContent = 'NOK'; $('#status').textContent = `Erro: ${e}`; }
+    }
+
+    $('#searchBtn').addEventListener('click', search);
+    health(); loadGraph(); loadMetrics();
+    setInterval(() => { health(); loadMetrics(); }, 15000);
+  </script>
+</body>
+</html>

@@ -52,6 +52,7 @@ from semantic import related_notes, suggest  # noqa: E402
 from compress import compress_text, compress_note  # noqa: E402
 from swarm import run_swarm  # noqa: E402
 from llm_local import reason  # noqa: E402
+from graph import build_graph  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Observabilidade (Sprint 5 / M3): metricas + cache de /search (TTL).
@@ -350,6 +351,15 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(rep if rep else {"error": "not found"}, 404 if not rep else 200)
             except Exception as e:
                 return self._send({"error": f"compress failed: {e}"}, 500)
+        if u.path == "/graph":
+            try:
+                k = int(urllib.parse.parse_qs(u.query).get("k", ["3"])[0])
+                limit = int(urllib.parse.parse_qs(u.query).get("limit", ["600"])[0])
+                with _METRICS_LOCK:
+                    _METRICS["mcp_requests_total"] += 1
+                return self._send(build_graph(VAULT, k=k, limit=limit))
+            except Exception as e:
+                return self._send({"error": f"graph failed: {e}"}, 500)
         self._send({"error": "unknown endpoint"}, 404)
 
     def do_POST(self):
