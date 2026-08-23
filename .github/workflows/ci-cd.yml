@@ -106,8 +106,11 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Smoke test do MCP
-        run: python tests/smoke_test.py
+      - name: E2E v2.0 inovação (5)
+        run: python tests/e2e_v2.py
+
+      - name: E2E Ollama S10-A (skip se ausente)
+        run: python tests/e2e_ollama.py
 
       - name: Suíte completa (orquestrador run_all)
         run: python tests/run_all.py

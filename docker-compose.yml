@@ -1,9 +1,13 @@
 # ============================================================================
-# MEGA BRAIN — docker-compose (ambiente de validacao / observabilidade)
-# NAO e o runtime de producao (vault Windows + Obsidian). Aqui validamos:
+# MEGA BRAIN - docker-compose (ambiente de validacao / observabilidade / IA local)
+# NAO eh o runtime de producao (vault Windows + Obsidian). Aqui validamos:
 #   - MCP server (porta 8770) num vault fixture
-#   - cache Redis (TTL) para /search  [roadmap M3]
-#   - Prometheus + Grafana para metricas [roadmap M3]
+#   - cache Redis (TTL) para /search              [roadmap M3]
+#   - Prometheus + Grafana para metricas          [roadmap M3]
+#   - Ollama (modelos locais) para embeddings/reason v2.0  [S10-A, opcional]
+# O serviço `ollama` usa `profiles: [ollama]` -> sobe so com:
+#   docker compose --profile ollama up
+# Sem o perfil, o MCP roda 100% em MODO HEURISTICO (offline).
 # ============================================================================
 
 services:
@@ -21,12 +25,18 @@ services:
       MCP_PORT: 8770
       VAULT_ROOT: /vault
       REDIS_URL: redis://redis:6379/0
+      # Ativacao de IA real (v2.0): descomente e ajuste se o perfil ollama estiver ativo
+      # OLLAMA_URL: http://ollama:11434
+      # OLLAMA_MODEL: nomic-embed-text
     volumes:
-      # Monte um vault fixture ou o vault real (read-only) para testar:
+      # Vault fixture para testar (read-only). Ajuste para o vault real se quiser.
       - ./tests/fixture:/vault:ro
     depends_on:
       redis:
         condition: service_healthy
+      ollama:
+        condition: service_started
+        required: false
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8770/health"]
       interval: 15s
@@ -58,19 +68,34 @@ services:
       - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     restart: unless-stopped
 
-  # --- Grafana (dashboards) ---
+  # --- Grafana (dashboards das metricas) ---
   grafana:
     image: grafana/grafana:latest
     ports:
       - "3000:3000"
     environment:
-      GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
     depends_on:
       - prometheus
     restart: unless-stopped
 
-# Uso:
-#   docker compose up --build          # sobe tudo
-#   docker compose run --rm mcp sh     # shell no container de validacao
-#   curl http://localhost:8770/health  # healthcheck do MCP
+  # --- Ollama (modelos de LLM/embeddings locais) — OPCIONAL [S10-A] ---
+  # Sobe apenas com: docker compose --profile ollama up
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
