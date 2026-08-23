@@ -109,6 +109,9 @@ jobs:
       - name: Smoke test do MCP
         run: python tests/smoke_test.py
 
+      - name: Teste de validacao continua (M4) — /validate
+        run: python tests/e2e_validate.py
+
       - name: Teste de debounce do watcher
         run: python tests/test_watcher_debounce.py
 

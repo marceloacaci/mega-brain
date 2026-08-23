@@ -77,9 +77,9 @@ Reservado para:
 mas o desenvolvimento correu à frente — S1/S2/S3 já implementados.
 
 ### Etapa atual
-- **Cronograma**: **M5 (Resiliência) CONCLUÍDO**. Resta: M4 (Extensibilidade) e M6 (Polimento).
-- **Sprint**: **Sprint 6 — M5 Resiliência** concluído (veja `docs/sprints/sprint-6.md`).
-  Failover de backup para 2º destino + `verify_integrity.ps1` (estrutura/corrupção/backup).
+- **Cronograma**: **M4 (Extensibilidade) CONCLUÍDO**. Resta: M6 (Polimento).
+- **Sprint**: **Sprint 7 — M4 Extensibilidade** concluído (veja `docs/sprints/sprint-7.md`).
+  `validate_vault.py` + rota `GET /validate` (estrutura/frontmatter/links quebrados).
 
 ### Percentual por ESCOPO entregue (mais honesto que o tempo)
 | Fase | Status | % |
@@ -89,19 +89,20 @@ mas o desenvolvimento correu à frente — S1/S2/S3 já implementados.
 | Sprint 3 (M4/M2) | DONE (rename/move S3-3, runbook S3-5) | 100% |
 | Sprint 4 QA | DONE (debounce watcher + E2E hooks + CI estendido) | 100% |
 | M3 Observabilidade | DONE (`/metrics` Prometheus + cache TTL memória/Redis) | 100% |
-| **M5 Resiliencia** | **DONE** (failover 2o destino + verify_integrity.ps1) | 100% |
-| M4 Extensibilidade | rotas extras + templates OK; falta validacao continua | ~60% |
-| M6 Polimento | docs/quality/chronogram/uml OK; E2E hooks/backup feitos | ~70% |
+| M5 Resiliencia | DONE (failover 2o destino + verify_integrity.ps1) | 100% |
+| **M4 Extensibilidade** | **DONE** (rotas extras + templates + /validate continuo) | 100% |
+| M6 Polimento | docs/quality/chronogram/uml OK; E2E hooks/backup/validate feitos | ~75% |
 
-**Conclusao**: ~85% do conteudo de M1–M4 (M3, M5) já existe. Restam M4 (extensibilidade)
-e polimento de M6. Por linha do tempo (calendario) ainda nao comecou (inicio 01/09),
-mas o trabalho real ja cobriu M1+M2+S3+S4+S5+S6.
+**Conclusao**: ~90% do conteudo de M1–M5 (e M4) já existe. Resta polimento de M6
+(últimos ajustes de qualidade/docs). Por linha do tempo (calendario) ainda nao comecou
+(inicio 01/09), mas o trabalho real ja cobriu M1+M2+S3+S4+S5+S6+S7.
 
 ### Cobertura de testes (inegociavel do `docs/quality.md`)
 - Smoke MCP: **8/8 PASS** (`tests/smoke_test.py` — inclui `/metrics` + cache)
+- E2E validação (M4): **2/2 PASS** (`tests/e2e_validate.py`)
 - Debounce watcher: **4/4 PASS** (`tests/test_watcher_debounce.py`)
 - E2E hooks: **4/4 PASS** (`tests/e2e_hooks.py`)
 - E2E resiliência: **3/3 PASS** (`tests/e2e_backup.py`)
 - CI: `ci-cd.yml` roda lint (PSScriptAnalyzer+py_compile) + SAST (bandit+gitleaks) +
-  test-linux (smoke+debounce) + test-windows (E2E hooks + E2E backup) + build Docker.
+  test-linux (smoke + e2e_validate + debounce) + test-windows (E2E hooks + E2E backup) + build Docker.
 

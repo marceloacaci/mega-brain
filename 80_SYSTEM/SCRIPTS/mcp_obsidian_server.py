@@ -6,6 +6,7 @@ Expõe operações do cofre Obsidian como endpoints JSON:
   GET  /health
   GET  /search?q=TERMO               -> lista de notas que contêm TERMO (com cache TTL)
   GET  /metrics                      -> métricas Prometheus (M3 Observabilidade)
+  GET  /validate                     -> validacao continua do vault (M4 Extensibilidade)
   GET  /read?path=NOTE.md            -> conteúdo da nota (relativo ao vault)
   POST /write  {path, content}       -> cria/sobrescreve nota
   POST /append {path, content}       -> anexa conteúdo à nota
@@ -24,12 +25,19 @@ Uso:
 import argparse
 import json
 import os
+import sys
 import time
 import threading
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 
 VAULT = r"D:\Programas (Disco D)\Obsidian\cofres\Marcelo IA Skills"
+
+# Validacao continua do vault (M4 Extensibilidade)
+sys_path = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+if sys_path not in sys.path:
+    sys.path.insert(0, sys_path)
+import validate_vault  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Observabilidade (Sprint 5 / M3): metricas + cache de /search (TTL).
@@ -270,6 +278,11 @@ class Handler(BaseHTTPRequestHandler):
                                "cache": "redis" if _REDIS else "memory"})
         if u.path == "/metrics":
             return self._send_metrics()
+        if u.path == "/validate":
+            rep = validate_vault.validate(VAULT)
+            with _METRICS_LOCK:
+                _METRICS["mcp_requests_total"] += 1
+            return self._send(rep)
         if u.path == "/read":
             p = urllib.parse.parse_qs(u.query).get("path", [""])[0]
             c = read_note(p)
