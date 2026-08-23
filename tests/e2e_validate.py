@@ -17,7 +17,9 @@ import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 VAULT = r"D:\Programas (Disco D)\Obsidian\cofres\Marcelo IA Skills"
-SERVER = os.path.join(VAULT, "80_SYSTEM", "SCRIPTS", "mcp_obsidian_server.py")
+# SERVER relativo ao repo (tests/../80_SYSTEM/...), NAO ao vault hardcoded —
+# no CI o repo fica em /home/runner/work/..., nao no vault real do dev.
+SERVER = os.path.abspath(os.path.join(HERE, "..", "80_SYSTEM", "SCRIPTS", "mcp_obsidian_server.py"))
 
 
 def get_json(url, timeout=5):
