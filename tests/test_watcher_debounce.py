@@ -10,6 +10,7 @@ Uso:
 import importlib.util
 import os
 import sys
+import tempfile
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -29,6 +30,12 @@ def load_watcher():
 
 def main():
     w = load_watcher()
+    # O watcher escreve em 80_SYSTEM/LOGS/watcher.log (gitignored, ausente no CI).
+    # Redirecionamos _LOG para um arquivo temporario para tornar o teste
+    # deterministico em qualquer SO (reproz o cenario do runner Linux).
+    _tmp_log = tempfile.NamedTemporaryFile(prefix="mb_watch_", suffix=".log", delete=False)
+    _tmp_log.close()
+    w._LOG = _tmp_log.name
     results = []
 
     # 1. Primeiro evento de uma nota processa

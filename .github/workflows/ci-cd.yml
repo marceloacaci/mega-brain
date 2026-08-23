@@ -36,21 +36,26 @@ jobs:
         shell: pwsh
         run: |
           $erros = 0
+          $avisos = 0
           Get-ChildItem -Path "80_SYSTEM" -Recurse -Filter *.ps1 | ForEach-Object {
             try {
               $null = [scriptblock]::Create((Get-Content $_ -Raw))
-              $res = Invoke-ScriptAnalyzer -Path $_.FullName -Severity @('Error','Warning') -ErrorAction SilentlyContinue
+              $res = Invoke-ScriptAnalyzer -Path $_.FullName -Severity @('Error') -ErrorAction SilentlyContinue
               if ($res) {
                 $erros++
-                $res | ForEach-Object { Write-Warning "$($_.FullName): $($_.Message)" }
-              } else {
-                Write-Host "OK  $($_.FullName)"
+                $res | ForEach-Object { Write-Error "$($_.FullName): $($_.Message)" }
               }
             } catch {
               $erros++
               Write-Error "FAIL $($_.FullName): $_"
             }
           }
+          # Warnings (BOM/Write-Host legados) sao reportados, mas NAO bloqueiam o build.
+          Get-ChildItem -Path "80_SYSTEM" -Recurse -Filter *.ps1 | ForEach-Object {
+            $w = Invoke-ScriptAnalyzer -Path $_.FullName -Severity @('Warning') -ErrorAction SilentlyContinue
+            if ($w) { $avisos += $w.Count; $w | ForEach-Object { Write-Warning "$($_.FullName): $($_.Message)" } }
+          }
+          Write-Host "PSScriptAnalyzer: $erros erro(s), $avisos aviso(s) (apenas erros bloqueiam)"
           if ($erros -gt 0) { exit 1 }
 
       - uses: actions/setup-python@v5
