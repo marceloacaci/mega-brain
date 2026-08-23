@@ -9,17 +9,27 @@ Uso:
   python tests/run_all.py
 Exit 0 se tudo passar, 1 se algum falhar.
 """
+import os
 import subprocess
 import sys
+
+# No CI (GitHub Actions), os testes Windows-specific (e2e_backup, e2e_hooks)
+# rodam no job Windows dedicado. O run_all no job Linux pula eles para evitar
+# flakiness por ambiente (pwsh/robocopy ausentes ou aninhamento de subprocess).
+IN_CI = bool(os.environ.get("GITHUB_ACTIONS"))
 
 SUITE = [
     ("Smoke MCP (8 rotas)", ["python", "tests/smoke_test.py"]),
     ("Debounce watcher (4)", ["python", "tests/test_watcher_debounce.py"]),
     ("E2E validação M4 (2)", ["python", "tests/e2e_validate.py"]),
-    ("E2E resiliência M5 (3)", ["python", "tests/e2e_backup.py"]),
-    ("E2E hooks (4)", ["python", "tests/e2e_hooks.py"]),
     ("E2E integração (fluxo fim-a-fim)", ["python", "tests/e2e_integration.py"]),
 ]
+if not IN_CI:
+    # Apenas local: estes precisam de pwsh/robocopy (Windows) e tem job proprio no CI.
+    SUITE += [
+        ("E2E resiliência M5 (3)", ["python", "tests/e2e_backup.py"]),
+        ("E2E hooks (4)", ["python", "tests/e2e_hooks.py"]),
+    ]
 
 
 def main():
