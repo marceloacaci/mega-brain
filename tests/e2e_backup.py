@@ -22,6 +22,10 @@ def run_pwsh(script, *args):
     cmd = ["pwsh", "-NoProfile", "-ExecutionPolicy", "Bypass",
            "-File", os.path.join(SCRIPTS, script)] + list(args)
     p = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    if p.returncode != 0:
+        print(f"   [pwsh debug] {script} rc={p.returncode}")
+        print("   STDOUT:", (p.stdout or "").strip()[:800])
+        print("   STDERR:", (p.stderr or "").strip()[:800])
     return p.returncode, p.stdout, p.stderr
 
 
