@@ -94,11 +94,25 @@ _AGENTS = {
 def run_swarm(vault, query, agents=None):
     """Coordena os agentes (sequencial leve; contrato entrada=query, saída=dict).
 
-    Retorna {agent: output, meta:{elapsed_ms, agents_run}}.
+    Aplica governance (S10-C): bloqueia a swarm se a query contiver Prompt Injection.
+    Retorna {agent: output, meta:{elapsed_ms, agents_run, injection_risk}}.
     """
     agents = agents or list(_AGENTS.keys())
     t0 = time.time()
+    # Guardrail de Prompt Injection (S10-C) — bloqueia antes de rodar os agentes.
+    try:
+        from governance import guardrails_injection
+        risk, reasons = guardrails_injection(query or "")
+    except Exception:
+        risk, reasons = (False, [])
     results = {}
+    if risk:
+        results["guardian"] = {"ok": False, "injection_risk": True,
+                               "reasons": reasons, "blocked": True}
+        elapsed = round((time.time() - t0) * 1000, 1)
+        return {"agents": results,
+                "meta": {"elapsed_ms": elapsed, "agents_run": 0,
+                         "injection_risk": True, "reasons": reasons}}
     for name in agents:
         fn = _AGENTS.get(name)
         if fn is None:
@@ -108,4 +122,5 @@ def run_swarm(vault, query, agents=None):
         except Exception as e:  # falha-segura por agente
             results[name] = {"error": str(e)}
     elapsed = round((time.time() - t0) * 1000, 1)
-    return {"agents": results, "meta": {"elapsed_ms": elapsed, "agents_run": len(results)}}
+    return {"agents": results, "meta": {"elapsed_ms": elapsed, "agents_run": len(results),
+                                         "injection_risk": False}}

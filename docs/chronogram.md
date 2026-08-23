@@ -77,38 +77,36 @@ Reservado para:
 mas o desenvolvimento correu à frente — S1/S2/S3 já implementados.
 
 ### Etapa atual
-- **Cronograma**: **M6 (Polimento) CONCLUÍDO → v1.0-MVP ENTREGUE**. **v2.0 (Inovação) CONCLUÍDO** em modo fallback (Sprint 9).
-- **Sprint**: **Sprint 9 — v2.0 Inovação** concluído (veja `docs/sprints/sprint-9.md`).
-  `semantic.py` + `compress.py` + `swarm.py` + `llm_local.py` + rotas `/related /suggest
-  /compress /swarm /reason` (fallback heurístico quando Ollama ausente).
+- **Cronograma**: **M6 (Polimento) CONCLUÍDO → v1.0-MVP ENTREGUE**. **v2.0 (Inovação) CONCLUÍDO**. **Sprint 10 (Ativação & Consolidação) CONCLUÍDO** (S10-A/B/C) → **v2.1.0**.
+- **Sprint**: **Sprint 10 — S10-A/B/C** concluído (veja `docs/sprints/sprint-10.md`).
+  - S10-A: Ollama sidecar (compose) + `.env` OLLAMA + `e2e_ollama` + push backlinks.
+  - S10-B: rota `/graph` + `web/dashboard.html` (grafo de conhecimento).
+  - S10-C: `governance.py` (Prompt Injection + PII) em swarm/llm_local + `e2e_governance`.
 
 ### Percentual por ESCOPO entregue (mais honesto que o tempo)
 | Fase | Status | % |
 |------|--------|---:|
-| M1 Consolidacao | DONE (hooks, MCP 11 rotas, dashboard, backup) | 100% |
-| M2 Inteligencia | DONE (preditivo S3-1, correlacao S3-2, templates S3-4) | 100% |
-| Sprint 3 (M4/M2) | DONE (rename/move S3-3, runbook S3-5) | 100% |
-| Sprint 4 QA | DONE (debounce watcher + E2E hooks + CI estendido) | 100% |
-| M3 Observabilidade | DONE (`/metrics` Prometheus + cache TTL memória/Redis) | 100% |
-| M5 Resiliencia | DONE (failover 2o destino + verify_integrity.ps1) | 100% |
-| M4 Extensibilidade | DONE (rotas extras + templates + /validate continuo) | 100% |
-| M6 Polimento | DONE (orquestrador run_all + E2E integração + Makefile) | 100% |
-| **v2.0 Inovação** | **DONE** (semântica + compressão + swarm + LLM local, fallback) | 100% |
+| M1 Consolidacao | DONE | 100% |
+| M2 Inteligencia | DONE | 100% |
+| Sprint 3 (M4/M2) | DONE | 100% |
+| Sprint 4 QA | DONE | 100% |
+| M3 Observabilidade | DONE | 100% |
+| M5 Resiliencia | DONE | 100% |
+| M4 Extensibilidade | DONE | 100% |
+| M6 Polismo | DONE | 100% |
+| v2.0 Inovação | DONE | 100% |
+| **S10 Ativação & Consolidação** | **DONE** (S10-A produção / S10-B dashboard / S10-C governança) | 100% |
 
-**Conclusao**: **100% do escopo M1–M6 + v2.0 entregue**. v1.0-MVP (S1–S8) + v2.0 (S9)
-atingidos em 2026-08-23. Ativação de IA real: `OLLAMA_URL` + `OLLAMA_MODEL` no `.env`.
+**Conclusao**: **100% do escopo M1–M6 + v2.0 + S10 entregue**. v1.0.0 (S1–S8), v2.0.0 (S9),
+v2.1.0 (S10) atingidos em 2026-08-23. Ativação de IA real: `OLLAMA_URL`+`OLLAMA_MODEL`.
 
 ### Cobertura de testes (inegociavel do `docs/quality.md`)
-- Suíte completa (`tests/run_all.py`): **7/7 suítes verdes**
-- Smoke MCP: **8/8 PASS** (`tests/smoke_test.py` — inclui `/metrics` + cache)
-- E2E validação (M4): **2/2 PASS** (`tests/e2e_validate.py`)
-- E2E v2.0 inovação: **5/5 PASS** (`tests/e2e_v2.py` — related/suggest/compress/swarm/reason)
-- Debounce watcher: **4/4 PASS** (`tests/test_watcher_debounce.py`)
-- E2E hooks: **4/4 PASS** (`tests/e2e_hooks.py`)
-- E2E resiliência: **3/3 PASS** (`tests/e2e_backup.py`)
-- E2E integração (M6): **3/3 PASS** (`tests/e2e_integration.py` — hook→MCP→validate)
-- CI: `ci-cd.yml` roda lint (PSScriptAnalyzer+py_compile) + SAST (bandit+gitleaks) +
-  test-linux (smoke + e2e_validate + debounce + e2e_v2 + **run_all**) + test-windows (E2E hooks + E2E backup) + build Docker.
+- Suíte completa (`tests/run_all.py`): **10/10 suítes verdes**
+- Smoke MCP: **8/8 PASS** · E2E validação M4: **2/2** · E2E v2.0: **5/5** ·
+  E2E Ollama S10-A: **SKIP** (offline) · E2E Dashboard S10-B: **PASS** ·
+  E2E Governanca S10-C: **PASS** · E2E integração: **3/3** · E2E resiliência: **3/3** · E2E hooks: **4/4** · Debounce: **4/4**
+- CI: `ci-cd.yml` roda lint + SAST + test-linux (smoke+e2e_validate+debounce+e2e_v2+
+  e2e_ollama+e2e_dashboard+e2e_governance+**run_all**) + test-windows (E2E hooks+backup) + build Docker.
 
 [[gantt]]
 

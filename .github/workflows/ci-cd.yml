@@ -115,6 +115,9 @@ jobs:
       - name: E2E Dashboard S10-B (grafo+html)
         run: python tests/e2e_dashboard.py
 
+      - name: E2E Governanca S10-C (injection+PII)
+        run: python tests/e2e_governance.py
+
       - name: Suíte completa (orquestrador run_all)
         run: python tests/run_all.py
 

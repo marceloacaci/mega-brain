@@ -61,8 +61,19 @@ def _heuristic(prompt, vault=None):
 
 
 def reason(prompt, vault=None):
-    """Raciocínio local. Usa Ollama se disponível; senão fallback heurístico."""
-    resp = _ollama_generate(prompt)
+    """Raciocínio local. Usa Ollama se disponível; senão fallback heurístico.
+
+    Governance (S10-C): mascaramos PII do prompt ANTES de qualquer envio a
+    modelo externo/local, e também antes do eco heurístico (evita vazamento).
+    """
+    try:
+        from governance import mask_pii
+        clean_prompt, pii_count = mask_pii(prompt or "")
+    except Exception:
+        clean_prompt, pii_count = (prompt or ""), 0
+    resp = _ollama_generate(clean_prompt)
     if resp:
-        return {"source": "ollama", "model": _MODEL, "response": resp.strip()}
-    return {"source": "heuristic", "model": None, "response": _heuristic(prompt, vault)}
+        return {"source": "ollama", "model": _MODEL, "response": resp.strip(),
+                "pii_masked": pii_count}
+    return {"source": "heuristic", "model": None,
+            "response": _heuristic(clean_prompt, vault), "pii_masked": pii_count}
