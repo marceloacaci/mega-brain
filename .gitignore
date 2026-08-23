@@ -20,3 +20,9 @@ Thumbs.db
 
 # Backups gerados (fora do versionamento)
 Backups/
+
+# Plugin caches / config locais (não versionar)
+.claudian/
+.hypernovum/
+.makemd/
+.space/
