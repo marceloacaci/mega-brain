@@ -4,7 +4,8 @@ MEGA BRAIN — Servidor MCP local (HTTP/JSON, stdlib, sem dependências).
 
 Expõe operações do cofre Obsidian como endpoints JSON:
   GET  /health
-  GET  /search?q=TERMO               -> lista de notas que contêm TERMO
+  GET  /search?q=TERMO               -> lista de notas que contêm TERMO (com cache TTL)
+  GET  /metrics                      -> métricas Prometheus (M3 Observabilidade)
   GET  /read?path=NOTE.md            -> conteúdo da nota (relativo ao vault)
   POST /write  {path, content}       -> cria/sobrescreve nota
   POST /append {path, content}       -> anexa conteúdo à nota
@@ -12,17 +13,102 @@ Expõe operações do cofre Obsidian como endpoints JSON:
   POST /tag    {note, tags:[...]}    -> aplica tags (frontmatter ou inline)
   POST /moc    {topic}               -> cria/atualiza MOC em 70_MOCS/
 
+Cache de /search: TTL em memória (padrão) ou Redis se REDIS_URL estiver setado
+e a lib `redis` estiver instalada. Sempre há fallback funcional.
+
 Uso:
   python mcp_obsidian_server.py [--port 8770] [--vault "CAMINHO"]
   Teste: curl http://localhost:8770/health
+         curl http://localhost:8770/metrics
 """
 import argparse
 import json
 import os
+import time
+import threading
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 
 VAULT = r"D:\Programas (Disco D)\Obsidian\cofres\Marcelo IA Skills"
+
+# ---------------------------------------------------------------------------
+# Observabilidade (Sprint 5 / M3): metricas + cache de /search (TTL).
+# ---------------------------------------------------------------------------
+# Métricas no formato Prometheus (contadores/counters incrementais).
+_METRICS = {
+    "mcp_requests_total": 0,
+    "mcp_search_total": 0,
+    "mcp_search_latency_ms_sum": 0.0,
+    "mcp_search_cache_hits": 0,
+    "mcp_search_cache_miss": 0,
+    "mcp_notes_total": 0,
+}
+_METRICS_LOCK = threading.Lock()
+
+# Cache em memória (fallback sempre disponível). Redis é opcional.
+_CACHE = {}
+_CACHE_LOCK = threading.Lock()
+_CACHE_TTL = float(os.environ.get("REDIS_TTL_SECONDS", "300"))
+
+def _try_redis():
+    """Retorna cliente redis se REDIS_URL estiver setado E a lib existir."""
+    url = os.environ.get("REDIS_URL", "")
+    if not url:
+        return None
+    try:
+        import redis  # dependencia opcional
+        return redis.from_url(url)
+    except Exception:
+        return None
+
+_REDIS = _try_redis()
+
+def _cache_get(q):
+    if _REDIS is not None:
+        try:
+            v = _REDIS.get("mb_cache:" + q)
+            if v is not None:
+                return json.loads(v)
+        except Exception:
+            pass
+    with _CACHE_LOCK:
+        if q in _CACHE:
+            ts, val = _CACHE[q]
+            if time.time() - ts < _CACHE_TTL:
+                return val
+            del _CACHE[q]
+    return None
+
+def _cache_put(q, val):
+    if _REDIS is not None:
+        try:
+            _REDIS.setex("mb_cache:" + q, int(_CACHE_TTL), json.dumps(val))
+        except Exception:
+            pass
+    with _CACHE_LOCK:
+        _CACHE[q] = (time.time(), val)
+
+def _record_search(latency_ms, cache_hit):
+    with _METRICS_LOCK:
+        _METRICS["mcp_search_total"] += 1
+        _METRICS["mcp_search_latency_ms_sum"] += latency_ms
+        if cache_hit:
+            _METRICS["mcp_search_cache_hits"] += 1
+        else:
+            _METRICS["mcp_search_cache_miss"] += 1
+
+def _metrics_text():
+    lines = []
+    with _METRICS_LOCK:
+        for k, v in _METRICS.items():
+            lines.append(f"# TYPE {k} counter")
+            lines.append(f"{k} {v}")
+    lines.append("# TYPE mcp_cache_backend gauge")
+    lines.append(f"mcp_cache_backend {{backend=\"{'redis' if _REDIS else 'memory'}\"}} 1")
+    with _CACHE_LOCK:
+        lines.append("# TYPE mcp_cache_entries gauge")
+        lines.append(f"mcp_cache_entries {len(_CACHE)}")
+    return "\n".join(lines) + "\n"
 
 def _vault_path(rel):
     return os.path.join(VAULT, rel.strip("/\\"))
@@ -47,6 +133,18 @@ def search(q):
                 except Exception:
                     pass
     return hits
+
+def cached_search(q):
+    """/search com cache (Redis opcional, fallback memória). Mede latência."""
+    t0 = time.time()
+    cached = _cache_get(q)
+    if cached is not None:
+        _record_search((time.time() - t0) * 1000, cache_hit=True)
+        return cached
+    res = search(q)
+    _cache_put(q, res)
+    _record_search((time.time() - t0) * 1000, cache_hit=False)
+    return res
 
 def read_note(rel):
     fp = _vault_path(rel)
@@ -143,6 +241,16 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_metrics(self):
+        with _METRICS_LOCK:
+            _METRICS["mcp_requests_total"] += 1
+        body = _metrics_text().encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_OPTIONS(self):
         # Responde ao preflight CORS (necessário para POST cross-origin a partir
         # de páginas web servidas noutra origem, ex.: localhost:8800 -> :8770).
@@ -158,7 +266,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._send({"ok": True, "vault": VAULT})
         if u.path == "/search":
             q = urllib.parse.parse_qs(u.query).get("q", [""])[0]
-            return self._send({"query": q, "hits": search(q)})
+            return self._send({"query": q, "hits": cached_search(q),
+                               "cache": "redis" if _REDIS else "memory"})
+        if u.path == "/metrics":
+            return self._send_metrics()
         if u.path == "/read":
             p = urllib.parse.parse_qs(u.query).get("path", [""])[0]
             c = read_note(p)
@@ -179,6 +290,9 @@ class Handler(BaseHTTPRequestHandler):
                     top = key.split("/")[0]
                     by_dir[top] = by_dir.get(top, 0) + len(md)
                     total += len(md)
+            with _METRICS_LOCK:
+                _METRICS["mcp_requests_total"] += 1
+                _METRICS["mcp_notes_total"] = total
             return self._send({"total": total, "by_dir": by_dir})
         self._send({"error": "unknown endpoint"}, 404)
 
@@ -214,15 +328,23 @@ class Handler(BaseHTTPRequestHandler):
         self._send({"error": "unknown endpoint"}, 404)
 
 def main():
-    global VAULT
+    global VAULT, _CACHE_TTL, _REDIS
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", type=int, default=8770)
+    ap.add_argument("--port", type=int, default=int(os.environ.get("MCP_PORT", "8770")))
     ap.add_argument("--vault", default=VAULT)
+    ap.add_argument("--host", default=os.environ.get("MCP_HOST", "127.0.0.1"))
     args = ap.parse_args()
     VAULT = args.vault
-    print(f"[MEGA BRAIN MCP] ouvindo em http://localhost:{args.port}")
+    # TTL de cache e Redis podem vir de env (docker-compose os injeta).
+    try:
+        _CACHE_TTL = float(os.environ.get("REDIS_TTL_SECONDS", _CACHE_TTL))
+    except Exception:
+        pass
+    _REDIS = _try_redis()
+    print(f"[MEGA BRAIN MCP] ouvindo em http://{args.host}:{args.port}")
     print(f"[MEGA BRAIN MCP] vault: {VAULT}")
-    ThreadingHTTPServer(("127.0.0.1", args.port), Handler).serve_forever()
+    print(f"[MEGA BRAIN MCP] cache: {'redis' if _REDIS else 'memory'} (ttl={_CACHE_TTL:.0f}s)")
+    ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()
 
 if __name__ == "__main__":
     main()

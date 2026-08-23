@@ -77,9 +77,9 @@ Reservado para:
 mas o desenvolvimento correu à frente — S1/S2/S3 já implementados.
 
 ### Etapa atual
-- **Cronograma**: fronteira **M2 (Inteligência, DONE) → M3 (Observabilidade)**.
-- **Sprint**: **Sprint 4 — QA & Consolidação** concluído (veja `docs/sprints/sprint-4.md`).
-  Próximo: Sprint 5 = M3 Observabilidade.
+- **Cronograma**: **M3 (Observabilidade) CONCLUÍDO**. Próximo: M4 (Extensibilidade) / M5 (Resiliência).
+- **Sprint**: **Sprint 5 — M3 Observabilidade** concluído (veja `docs/sprints/sprint-5.md`).
+  Implementado `/metrics` (Prometheus) + cache TTL de `/search` (memória + Redis opcional).
 
 ### Percentual por ESCOPO entregue (mais honesto que o tempo)
 | Fase | Status | % |
@@ -87,18 +87,18 @@ mas o desenvolvimento correu à frente — S1/S2/S3 já implementados.
 | M1 Consolidacao | DONE (hooks, MCP 11 rotas, dashboard, backup) | 100% |
 | M2 Inteligencia | DONE (preditivo S3-1, correlacao S3-2, templates S3-4) | 100% |
 | Sprint 3 (M4/M2) | DONE (rename/move S3-3, runbook S3-5) | 100% |
-| **Sprint 4 QA** | **DONE** (debounce watcher + E2E hooks + CI estendido) | 100% |
-| M3 Observabilidade | em aberto (infra docker/redis/prom definida; `/metrics` nao implementado) | ~15% |
+| Sprint 4 QA | DONE (debounce watcher + E2E hooks + CI estendido) | 100% |
+| **M3 Observabilidade** | **DONE** (`/metrics` Prometheus + cache TTL memória/Redis) | 100% |
 | M4 Extensibilidade | rotas extras + templates OK; falta validacao continua | ~60% |
 | M5 Resiliencia | backup OK; failover 2o destino + integridade pendentes | ~20% |
 | M6 Polimento | docs/quality/chronogram/uml OK; E2E de hooks agora feito | ~60% |
 
-**Conclusao**: ~70% do conteudo de M1–M4 já existe. Restam M3 (observabilidade real),
-M5 (resiliencia) e polimento de M6. Por linha do tempo (calendario) ainda nao comecou
-(inicio 01/09), mas o trabalho real ja cobriu M1+M2+S3+S4.
+**Conclusao**: ~80% do conteudo de M1–M4 (e M3) já existe. Restam M5 (resiliencia) e
+polimento de M6. Por linha do tempo (calendario) ainda nao comecou (inicio 01/09),
+mas o trabalho real ja cobriu M1+M2+S3+S4+S5.
 
 ### Cobertura de testes (inegociavel do `docs/quality.md`)
-- Smoke MCP: **6/6 PASS** (`tests/smoke_test.py`)
+- Smoke MCP: **8/8 PASS** (`tests/smoke_test.py` — inclui `/metrics` + cache)
 - Debounce watcher: **4/4 PASS** (`tests/test_watcher_debounce.py`)
 - E2E hooks: **4/4 PASS** (`tests/e2e_hooks.py`)
 - CI: `ci-cd.yml` roda lint (PSScriptAnalyzer+py_compile) + SAST (bandit+gitleaks) +

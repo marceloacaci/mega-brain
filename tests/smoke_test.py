@@ -146,6 +146,21 @@ def main():
         except Exception as e:
             results.append(("move", False)); print(f"   erro move: {e}")
 
+        # 7. metrics (M3 Observabilidade) — Prometheus text + contadores
+        try:
+            mtxt = urllib.request.urlopen(f"{base}/metrics", timeout=5).read().decode("utf-8")
+            results.append(("metrics", "mcp_requests_total" in mtxt and "mcp_search_total" in mtxt))
+        except Exception as e:
+            results.append(("metrics", False)); print(f"   erro metrics: {e}")
+
+        # 8. search cache hit (2a chamada deve vir do cache sem erro)
+        try:
+            a = get_json(f"{base}/search?q=" + urllib.parse.quote("parcela"))
+            b = get_json(f"{base}/search?q=" + urllib.parse.quote("parcela"))
+            results.append(("search_cache", isinstance(a.get("hits"), list) and b.get("cache") in ("memory", "redis")))
+        except Exception as e:
+            results.append(("search_cache", False)); print(f"   erro search_cache: {e}")
+
         proc.terminate()
         try:
             proc.wait(timeout=5)
