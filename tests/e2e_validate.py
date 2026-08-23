@@ -8,10 +8,10 @@ Nao altera o vault real. Requer Python stdlib (urllib).
 """
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
-import threading
 import time
 import urllib.parse
 import urllib.request
@@ -19,6 +19,15 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 VAULT = r"D:\Programas (Disco D)\Obsidian\cofres\Marcelo IA Skills"
 SERVER = os.path.join(VAULT, "80_SYSTEM", "SCRIPTS", "mcp_obsidian_server.py")
+
+
+def free_port():
+    """Porta TCP livre para evitar colisao com orphans de runs anteriores."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
 
 
 def get_json(url, timeout=5):
@@ -46,47 +55,57 @@ def run_server(vault, port):
     return proc
 
 
+def wait_health(base, proc, tries=100, delay=0.3):
+    for _ in range(tries):
+        try:
+            if get_json(f"{base}/health").get("ok"):
+                return True
+        except Exception:
+            pass
+        # Se o processo morreu, nao adianta esperar
+        if proc.poll() is not None:
+            return False
+        time.sleep(delay)
+    return False
+
+
 def main():
     print("=== E2E Extensibilidade (M4) /validate ===")
     results = []
     tmp = tempfile.mkdtemp(prefix="mb_m4_")
-    port = 8799
+    port = free_port()
+    port2 = free_port()
     try:
         # 1. vault integro
         make_fixture(tmp, broken=False)
         proc = run_server(tmp, port)
         base = f"http://127.0.0.1:{port}"
         try:
-            for _ in range(50):
-                try:
-                    if get_json(f"{base}/health").get("ok"):
-                        break
-                except Exception:
-                    time.sleep(0.2)
-            rep_ok = get_json(f"{base}/validate")
-            results.append(("validate_ok_true", rep_ok.get("ok") is True and rep_ok.get("total_notas", 0) >= 2))
-            print(("PASS" if rep_ok.get("ok") else "FAIL"), "validate_ok_true", f"(ok={rep_ok.get('ok')}, notas={rep_ok.get('total_notas')})")
+            if not wait_health(base, proc):
+                print("FAIL: server nao subiu; stderr=", proc.stderr.read().decode()[:500] if proc.stderr else "")
+                results.append(("validate_ok_true", False))
+            else:
+                rep_ok = get_json(f"{base}/validate")
+                results.append(("validate_ok_true", rep_ok.get("ok") is True and rep_ok.get("total_notas", 0) >= 2))
+                print(("PASS" if rep_ok.get("ok") else "FAIL"), "validate_ok_true", f"(ok={rep_ok.get('ok')}, notas={rep_ok.get('total_notas')})")
         finally:
             proc.terminate()
             try: proc.wait(timeout=5)
             except Exception: proc.kill()
 
         # 2. vault com link quebrado (novo fixture + nova porta)
-        proc2 = run_server(tmp, port + 1)
-        base2 = f"http://127.0.0.1:{port+1}"
+        proc2 = run_server(tmp, port2)
+        base2 = f"http://127.0.0.1:{port2}"
         try:
-            for _ in range(50):
-                try:
-                    if get_json(f"{base2}/health").get("ok"):
-                        break
-                except Exception:
-                    time.sleep(0.2)
-            make_fixture(tmp, broken=True)  # adiciona nota com link quebrado
-            # reindexa? nao precisa; /validate varre disco
-            rep_bad = get_json(f"{base2}/validate")
-            tipos = [p.get("tipo") for p in rep_bad.get("problemas", [])]
-            results.append(("validate_detects_broken", rep_bad.get("ok") is False and "link_quebrado" in tipos))
-            print(("PASS" if ("link_quebrado" in tipos) else "FAIL"), "validate_detects_broken", f"(ok={rep_bad.get('ok')}, tipos={tipos})")
+            if not wait_health(base2, proc2):
+                print("FAIL: server2 nao subiu; stderr=", proc2.stderr.read().decode()[:500] if proc2.stderr else "")
+                results.append(("validate_detects_broken", False))
+            else:
+                make_fixture(tmp, broken=True)  # adiciona nota com link quebrado
+                rep_bad = get_json(f"{base2}/validate")
+                tipos = [p.get("tipo") for p in rep_bad.get("problemas", [])]
+                results.append(("validate_detects_broken", rep_bad.get("ok") is False and "link_quebrado" in tipos))
+                print(("PASS" if ("link_quebrado" in tipos) else "FAIL"), "validate_detects_broken", f"(ok={rep_bad.get('ok')}, tipos={tipos})")
         finally:
             proc2.terminate()
             try: proc2.wait(timeout=5)

@@ -66,9 +66,17 @@ def wait_health(base, timeout=10):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", type=int, default=8799)
+    ap.add_argument("--port", type=int, default=0, help="0 = porta TCP livre automatica")
     ap.add_argument("--server", default=DEFAULT_SERVER)
     args = ap.parse_args()
+
+    # Porta livre para evitar colisao com orphans de runs anteriores.
+    if args.port == 0:
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind(("127.0.0.1", 0))
+        args.port = s.getsockname()[1]
+        s.close()
 
     server = os.path.abspath(args.server)
     if not os.path.exists(server):
