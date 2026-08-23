@@ -23,6 +23,7 @@
     },
     "full_schedule": "02:00",
     "root": "D:\\Backups\\Obsidian",
+    "secondary_root": "",
     "enabled": true,
     "incremental_interval_hours": 6
   },

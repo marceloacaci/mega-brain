@@ -132,6 +132,10 @@ jobs:
         shell: pwsh
         run: python tests/e2e_hooks.py
 
+      - name: E2E de Resiliencia (M5) — failover + integridade
+        shell: pwsh
+        run: python tests/e2e_backup.py
+
   # ---------------------------------------------------------------------------
   # 4) BUILD — imagem multi-stage Docker (registry)
   # ---------------------------------------------------------------------------
