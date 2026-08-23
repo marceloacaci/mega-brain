@@ -1,0 +1,142 @@
+name: CI/CD — MEGA BRAIN
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.11"
+  REGISTRY_IMAGE: ghcr.io/marceloacaci/mega-brain
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1) LINT — PowerShell (PSScriptAnalyzer) + Python (py_compile)
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint (PowerShell + Python)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar PowerShell 7
+        shell: pwsh
+        run: |
+          if (-not (Get-Command pwsh -ErrorAction SilentlyContinue)) {
+            Write-Host "pwsh ausente neste runner; abortando."
+            exit 1
+          }
+          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser -ErrorAction SilentlyContinue
+
+      - name: PSScriptAnalyzer (hooks/scripts)
+        shell: pwsh
+        run: |
+          $erros = 0
+          Get-ChildItem -Path "80_SYSTEM" -Recurse -Filter *.ps1 | ForEach-Object {
+            try {
+              $null = [scriptblock]::Create((Get-Content $_ -Raw))
+              $res = Invoke-ScriptAnalyzer -Path $_.FullName -Severity @('Error','Warning') -ErrorAction SilentlyContinue
+              if ($res) {
+                $erros++
+                $res | ForEach-Object { Write-Warning "$($_.FullName): $($_.Message)" }
+              } else {
+                Write-Host "OK  $($_.FullName)"
+              }
+            } catch {
+              $erros++
+              Write-Error "FAIL $($_.FullName): $_"
+            }
+          }
+          if ($erros -gt 0) { exit 1 }
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Python compile (MCP + scripts)
+        run: |
+          python -m compileall -q 80_SYSTEM/SCRIPTS 80_SYSTEM/MCP tests || true
+          python -m py_compile 80_SYSTEM/SCRIPTS/mcp_obsidian_server.py
+
+  # ---------------------------------------------------------------------------
+  # 2) SAST — bandit (Python) + secret scan
+  # ---------------------------------------------------------------------------
+  sast:
+    name: SAST (bandit + secret-scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Instalar bandit + gitleaks (secret scan)
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz -o gitleaks.tar.gz
+          tar xzf gitleaks.tar.gz gitleaks
+
+      - name: bandit (Python SAST)
+        run: bandit -r 80_SYSTEM/SCRIPTS 80_SYSTEM/MCP tests -ll -f txt || true
+
+      - name: Secret scan (gitleaks)
+        run: ./gitleaks detect --source . --no-banner --redact -v || true
+
+  # ---------------------------------------------------------------------------
+  # 3) TESTES — smoke test do MCP (sobe servidor em fixture)
+  # ---------------------------------------------------------------------------
+  test:
+    name: Testes (smoke MCP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Smoke test
+        run: python tests/smoke_test.py
+
+  # ---------------------------------------------------------------------------
+  # 4) BUILD — imagem multi-stage Docker (registry)
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build Docker image (multi-stage)
+    needs: [lint, sast, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (e push em master)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: validate
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+          tags: |
+            ${{ env.REGISTRY_IMAGE }}:latest
+            ${{ env.REGISTRY_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

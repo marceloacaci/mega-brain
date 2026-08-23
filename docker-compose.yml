@@ -1,0 +1,76 @@
+# ============================================================================
+# MEGA BRAIN — docker-compose (ambiente de validacao / observabilidade)
+# NAO e o runtime de producao (vault Windows + Obsidian). Aqui validamos:
+#   - MCP server (porta 8770) num vault fixture
+#   - cache Redis (TTL) para /search  [roadmap M3]
+#   - Prometheus + Grafana para metricas [roadmap M3]
+# ============================================================================
+
+services:
+  # --- MCP server (validacao) ---
+  mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: validate
+    image: mega-brain-validate:local
+    ports:
+      - "8770:8770"
+    environment:
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8770
+      VAULT_ROOT: /vault
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      # Monte um vault fixture ou o vault real (read-only) para testar:
+      - ./tests/fixture:/vault:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8770/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # --- Cache de consultas (TTL) para /search ---
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  # --- Prometheus (coleta /metrics do MCP quando habilitado) ---
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    restart: unless-stopped
+
+  # --- Grafana (dashboards) ---
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+# Uso:
+#   docker compose up --build          # sobe tudo
+#   docker compose run --rm mcp sh     # shell no container de validacao
+#   curl http://localhost:8770/health  # healthcheck do MCP

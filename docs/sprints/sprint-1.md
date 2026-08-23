@@ -1,26 +1,37 @@
 # Sprint 1 — MVP de Automação Estável
-**Duração**: 2 semanas | **Objetivo**: pipeline de reindex + hooks funcionando de ponta a ponta.
+**Duração**: 2 semanas (10 dias úteis) | **Objetivo**: pipeline de reindex + hooks funcionando de ponta a ponta.
 
-## Objetivos
-- Hooks pré/pós-tarefa confiáveis (falha-segura em arquivo corrompido).
-- MCP server 9 rotas operacionais e testáveis.
-- Dashboard `INDEX_GERAL.md` gerado por script (sem edição manual).
+## Sprint Goal
+Entregar um pipeline de automação **falha-seguro** (hooks + MCP 9 rotas + dashboard gerado) onde qualquer tarefa do Hermes atualiza o cérebro sem intervenção manual.
 
-## Tasks
-| # | Task | Estimativa (h) | Dependência |
-|---|------|----------------|-------------|
-| S1-1 | Templates de hooks `pre_`/`post_task_hook` | 8 | — |
-| S1-2 | Função `Invoke-LightReindexIfNeeded` com try/catch | 6 | S1-1 |
-| S1-3 | Testar hooks com params PT (caso normal + corrompido) | 4 | S1-2 |
-| S1-4 | MCP server: rotas GET/POST | 10 | — |
-| S1-5 | Testes de API (`/health`, `/search`, `/stats`) | 5 | S1-4 |
-| S1-6 | `reindex_hybrid.ps1` modo light + deep | 12 | — |
-| S1-7 | Pipeline CI: syntax check PowerShell + py_compile | 6 | S1-1, S1-4 |
+## Histórias associadas (do backlog)
+- US-1 (registro em daily note) · US-2 (MCP HTTP) · US-3 (dashboard gerado por script)
 
-**Total**: ~51h (~1 dev full-time por 1,5 semana com buffer).
+## Tasks (engenharia de baixo nível)
+| # | Task | Story Points | Dependência |
+|---|------|:---:|-------------|
+| S1-1 | Templates de hooks `pre_`/`post_task_hook` | 5 | — |
+| S1-2 | Função `Invoke-LightReindexIfNeeded` com try/catch | 3 | S1-1 |
+| S1-3 | Testar hooks com params PT (caso normal + corrompido) | 2 | S1-2 |
+| S1-4 | MCP server: rotas GET/POST (health/search/read/write/append/link/tag/moc) | 8 | — |
+| S1-5 | Testes de API (`/health`, `/search`, `/stats`, `/read`) | 3 | S1-4 |
+| S1-6 | `reindex_hybrid.ps1` modo light + deep | 8 | — |
+| S1-7 | Pipeline CI: PSScriptAnalyzer + py_compile + smoke test | 5 | S1-1, S1-4 |
 
-## Critérios de Aceitação
-- [ ] `pre_task_hook.ps1 -Tarefa t -Projeto X` completa com exit 0.
-- [ ] Arquivo `.last_light.txt` corrompido → hook não aborta, força reindex.
-- [ ] `curl /health` retorna `{"ok": true}`.
-- [ ] `INDEX_GERAL.md` regenerado por `reindex_hybrid.ps1 -Mode deep`.
+**Total**: ~34 SP (1 dev full-time, ~2 semanas com buffer de 20%).
+
+## Grafo de dependências
+```
+S1-1 ─► S1-2 ─► S1-3
+S1-4 ─► S1-5
+S1-6 (paralelo a S1-1/S1-4)
+S1-1 ─┐
+S1-4 ─┴─► S1-7
+```
+
+## Critérios de Aceitação (Gherkin)
+- **CA-1**: Dado que `pre_task_hook.ps1 -Tarefa t -Projeto X` é executado, Quando o hook termina, Então ele completa com exit 0 e registra no daily note.
+- **CA-2**: Dado que `.last_light.txt` está corrompido, Quando `Invoke-LightReindexIfNeeded` roda, Então ele força reindex (não aborta).
+- **CA-3**: Dado que o MCP está rodando, Quando `curl /health`, Então retorna `{"ok": true}`.
+- **CA-4**: Dado que `reindex_hybrid.ps1 -Mode deep` rodou, Quando leio `INDEX_GERAL.md`, Então ele foi regenerado por script (sem edição manual).
+- **CA-5**: Dado que o CI roda, Quando o PR é aberto, Então PSScriptAnalyzer + py_compile + smoke_test passam.

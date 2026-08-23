@@ -1,0 +1,11 @@
+# Prometheus scrape config — MEGA BRAIN (roadmap M3)
+# O MCP expoe /metrics (formato Prometheus) quando PROMETHEUS_ENABLED=true.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "mega-brain-mcp"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["mcp:8770"]

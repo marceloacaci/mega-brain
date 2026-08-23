@@ -1,0 +1,43 @@
+@startuml
+title MEGA BRAIN — Diagrama de Componentes (limites físicos e de rede)
+
+package "Máquina do Usuário (Windows)" {
+  [Hermes Agent] as Hermes
+  [Obsidian + Dataview] as Obs
+  [Agendador de Tarefas] as Sched
+}
+
+package "80_SYSTEM (código versionado)" {
+  [Hooks PowerShell\npre_/post_task_hook] as Hooks
+  [MCP Server\nPython :8770] as MCP
+  [Watcher\nPython] as Watch
+  [Reindex Hybrid\nPowerShell] as Reidx
+  [Backup\nrobocopy] as Bkp
+}
+
+node "Rede Local / Containers (validação)" {
+  [Redis\ncache TTL] as Redis
+  [Prometheus] as Prom
+  [Grafana] as Graf
+}
+
+database "Vault Obsidian\n(fonte de verdade)" as Vault
+
+Hermes --> Hooks : dispara (params PT)
+Hooks --> Vault : lê/escreve (daily, MOC)
+Hooks --> Reidx : Invoke-LightReindexIfNeeded
+Reidx --> Vault : gera INDEX_GERAL.md
+Watch --> Vault : monitora (debounce 2s)
+Bkp --> Vault : copia (full/incremental)
+Sched --> Reidx : agenda (6h / semanal)
+Sched --> Bkp : agenda (diário)
+Sched --> Watch : agenda
+
+MCP --> Vault : Repository/Gateway (leitura/escrita)
+Hermes --> MCP : HTTP REST (opcional)
+MCP --> Redis : cache de /search (M3)
+MCP --> Prom : /metrics (M3)
+Prom --> Graf : dashboards
+
+Obs --> Vault : renderiza dashboard vivo
+@enduml
