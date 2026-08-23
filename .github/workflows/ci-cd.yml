@@ -89,10 +89,10 @@ jobs:
         run: ./gitleaks detect --source . --no-banner --redact -v || true
 
   # ---------------------------------------------------------------------------
-  # 3) TESTES — smoke test do MCP (sobe servidor em fixture)
+  # 3) TESTES — smoke MCP + debounce do watcher (Linux) + E2E hooks (Windows)
   # ---------------------------------------------------------------------------
-  test:
-    name: Testes (smoke MCP)
+  test-linux:
+    name: Testes (smoke MCP + debounce watcher)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -101,15 +101,38 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Smoke test
+      - name: Smoke test do MCP
         run: python tests/smoke_test.py
+
+      - name: Teste de debounce do watcher
+        run: python tests/test_watcher_debounce.py
+
+  test-windows:
+    name: Testes E2E (hooks PowerShell)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Verificar pwsh
+        shell: pwsh
+        run: |
+          if (-not (Get-Command pwsh -ErrorAction SilentlyContinue)) { exit 1 }
+          Write-Host "pwsh ok"
+
+      - name: E2E dos hooks (pre/post com params PT)
+        shell: pwsh
+        run: python tests/e2e_hooks.py
 
   # ---------------------------------------------------------------------------
   # 4) BUILD — imagem multi-stage Docker (registry)
   # ---------------------------------------------------------------------------
   build:
     name: Build Docker image (multi-stage)
-    needs: [lint, sast, test]
+    needs: [lint, sast, test-linux, test-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: read

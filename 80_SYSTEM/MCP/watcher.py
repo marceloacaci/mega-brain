@@ -14,7 +14,12 @@ from config import load_config
 
 _CFG = load_config()
 _VAULT = _CFG.get("vault_path", "")
+# Debounce: ignora eventos repetidos da mesma nota numa janela de 2s.
+_DEBOUNCE_MS = int(_CFG.get("watcher_debounce_ms", 2000))
 _LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "LOGS", "watcher.log")
+
+# Mapa path -> timestamp do ultimo evento processado (debounce).
+_LAST_SEEN = {}
 
 
 def log(msg):
@@ -27,8 +32,20 @@ def log(msg):
         pass
 
 
+def _debounced(path):
+    """Retorna True se o evento deve ser processado (passou do debounce)."""
+    now = time.time() * 1000
+    last = _LAST_SEEN.get(path, 0)
+    if now - last < _DEBOUNCE_MS:
+        return False
+    _LAST_SEEN[path] = now
+    return True
+
+
 def handle(path):
     if not path.endswith(".md"):
+        return
+    if not _debounced(path):
         return
     rel = os.path.relpath(path, _VAULT).replace("\\", "/") if _VAULT else path
     log(f"change: {rel}")
