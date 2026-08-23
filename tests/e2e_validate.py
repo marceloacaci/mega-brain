@@ -8,7 +8,6 @@ Nao altera o vault real. Requer Python stdlib (urllib).
 """
 import os
 import shutil
-import socket
 import subprocess
 import sys
 import tempfile
@@ -19,15 +18,6 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 VAULT = r"D:\Programas (Disco D)\Obsidian\cofres\Marcelo IA Skills"
 SERVER = os.path.join(VAULT, "80_SYSTEM", "SCRIPTS", "mcp_obsidian_server.py")
-
-
-def free_port():
-    """Porta TCP livre para evitar colisao com orphans de runs anteriores."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("127.0.0.1", 0))
-    port = s.getsockname()[1]
-    s.close()
-    return port
 
 
 def get_json(url, timeout=5):
@@ -50,8 +40,9 @@ def make_fixture(root, broken=False):
 
 def run_server(vault, port):
     env = dict(os.environ)
+    # Captura o stderr para diagnostico (nao DESCARTA como DEVNULL).
     proc = subprocess.Popen([sys.executable, SERVER, "--port", str(port), "--vault", vault],
-                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     return proc
 
 
@@ -73,16 +64,17 @@ def main():
     print("=== E2E Extensibilidade (M4) /validate ===")
     results = []
     tmp = tempfile.mkdtemp(prefix="mb_m4_")
-    port = free_port()
-    port2 = free_port()
+    # Portas fixas altas (raramente em uso); o CI nao tem orphans.
+    port = 8899
+    port2 = 8900
     try:
         # 1. vault integro
         make_fixture(tmp, broken=False)
         proc = run_server(tmp, port)
         base = f"http://127.0.0.1:{port}"
         try:
-            if not wait_health(base, proc):
-                print("FAIL: server nao subiu; stderr=", proc.stderr.read().decode()[:500] if proc.stderr else "")
+            if not wait_health(base, proc, tries=200, delay=0.3):
+                print("FAIL: server nao subiu; stderr=", proc.stderr.read().decode()[:800] if proc.stderr else "")
                 results.append(("validate_ok_true", False))
             else:
                 rep_ok = get_json(f"{base}/validate")
@@ -97,8 +89,8 @@ def main():
         proc2 = run_server(tmp, port2)
         base2 = f"http://127.0.0.1:{port2}"
         try:
-            if not wait_health(base2, proc2):
-                print("FAIL: server2 nao subiu; stderr=", proc2.stderr.read().decode()[:500] if proc2.stderr else "")
+            if not wait_health(base2, proc2, tries=200, delay=0.3):
+                print("FAIL: server2 nao subiu; stderr=", proc2.stderr.read().decode()[:800] if proc2.stderr else "")
                 results.append(("validate_detects_broken", False))
             else:
                 make_fixture(tmp, broken=True)  # adiciona nota com link quebrado
