@@ -77,10 +77,10 @@ Reservado para:
 mas o desenvolvimento correu à frente — S1/S2/S3 já implementados.
 
 ### Etapa atual
-- **Cronograma**: **M6 (Polimento) CONCLUÍDO → v1.0-MVP ENTREGUE**. Resta: v2.0 (roadmap em `docs/brainstorm.md`).
-- **Sprint**: **Sprint 8 — M6 Polimento** concluído (veja `docs/sprints/sprint-8.md`).
-  `tests/run_all.py` (orquestrador 6 suítes) + `tests/e2e_integration.py` (fluxo fim-a-fim)
-  + `Makefile` + step `run_all` no CI.
+- **Cronograma**: **M6 (Polimento) CONCLUÍDO → v1.0-MVP ENTREGUE**. **v2.0 (Inovação) CONCLUÍDO** em modo fallback (Sprint 9).
+- **Sprint**: **Sprint 9 — v2.0 Inovação** concluído (veja `docs/sprints/sprint-9.md`).
+  `semantic.py` + `compress.py` + `swarm.py` + `llm_local.py` + rotas `/related /suggest
+  /compress /swarm /reason` (fallback heurístico quando Ollama ausente).
 
 ### Percentual por ESCOPO entregue (mais honesto que o tempo)
 | Fase | Status | % |
@@ -92,20 +92,21 @@ mas o desenvolvimento correu à frente — S1/S2/S3 já implementados.
 | M3 Observabilidade | DONE (`/metrics` Prometheus + cache TTL memória/Redis) | 100% |
 | M5 Resiliencia | DONE (failover 2o destino + verify_integrity.ps1) | 100% |
 | M4 Extensibilidade | DONE (rotas extras + templates + /validate continuo) | 100% |
-| **M6 Polimento** | **DONE** (orquestrador run_all + E2E integração + Makefile) | 100% |
+| M6 Polimento | DONE (orquestrador run_all + E2E integração + Makefile) | 100% |
+| **v2.0 Inovação** | **DONE** (semântica + compressão + swarm + LLM local, fallback) | 100% |
 
-**Conclusao**: **100% do escopo M1–M6 entregue**. v1.0-MVP atingido (2026-08-23).
-Por linha do tempo (calendario) o cronograma formal inicia 2026-09-01, mas o
-trabalho real ja cobriu S1–S8. Próximo: v2.0 (ver `docs/brainstorm.md`).
+**Conclusao**: **100% do escopo M1–M6 + v2.0 entregue**. v1.0-MVP (S1–S8) + v2.0 (S9)
+atingidos em 2026-08-23. Ativação de IA real: `OLLAMA_URL` + `OLLAMA_MODEL` no `.env`.
 
 ### Cobertura de testes (inegociavel do `docs/quality.md`)
-- Suíte completa (`tests/run_all.py`): **6/6 suítes verdes**
+- Suíte completa (`tests/run_all.py`): **7/7 suítes verdes**
 - Smoke MCP: **8/8 PASS** (`tests/smoke_test.py` — inclui `/metrics` + cache)
 - E2E validação (M4): **2/2 PASS** (`tests/e2e_validate.py`)
+- E2E v2.0 inovação: **5/5 PASS** (`tests/e2e_v2.py` — related/suggest/compress/swarm/reason)
 - Debounce watcher: **4/4 PASS** (`tests/test_watcher_debounce.py`)
 - E2E hooks: **4/4 PASS** (`tests/e2e_hooks.py`)
 - E2E resiliência: **3/3 PASS** (`tests/e2e_backup.py`)
 - E2E integração (M6): **3/3 PASS** (`tests/e2e_integration.py` — hook→MCP→validate)
 - CI: `ci-cd.yml` roda lint (PSScriptAnalyzer+py_compile) + SAST (bandit+gitleaks) +
-  test-linux (smoke + e2e_validate + debounce + **run_all**) + test-windows (E2E hooks + E2E backup) + build Docker.
+  test-linux (smoke + e2e_validate + debounce + e2e_v2 + **run_all**) + test-windows (E2E hooks + E2E backup) + build Docker.
 

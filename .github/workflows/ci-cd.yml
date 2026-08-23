@@ -109,9 +109,6 @@ jobs:
       - name: Smoke test do MCP
         run: python tests/smoke_test.py
 
-      - name: Teste de validacao continua (M4) — /validate
-        run: python tests/e2e_validate.py
-
       - name: Suíte completa (orquestrador run_all)
         run: python tests/run_all.py
 

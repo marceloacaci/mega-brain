@@ -22,6 +22,7 @@ SUITE = [
     ("Smoke MCP (8 rotas)", ["python", "tests/smoke_test.py"]),
     ("Debounce watcher (4)", ["python", "tests/test_watcher_debounce.py"]),
     ("E2E validação M4 (2)", ["python", "tests/e2e_validate.py"]),
+    ("E2E v2.0 inovação (5)", ["python", "tests/e2e_v2.py"]),
     ("E2E integração (fluxo fim-a-fim)", ["python", "tests/e2e_integration.py"]),
 ]
 if not IN_CI:

@@ -7,12 +7,17 @@ Expõe operações do cofre Obsidian como endpoints JSON:
   GET  /search?q=TERMO               -> lista de notas que contêm TERMO (com cache TTL)
   GET  /metrics                      -> métricas Prometheus (M3 Observabilidade)
   GET  /validate                     -> validacao continua do vault (M4 Extensibilidade)
+  GET  /related?path=P&k=5           -> notas relacionadas (v2.0 semântica, fallback Jaccard)
+  GET  /suggest?q=Q&k=5              -> sugestão de notas por query (v2.0)
+  GET  /compress?path=P&max_tokens=N -> compressão de contexto (v2.0)
   GET  /read?path=NOTE.md            -> conteúdo da nota (relativo ao vault)
   POST /write  {path, content}       -> cria/sobrescreve nota
   POST /append {path, content}       -> anexa conteúdo à nota
   POST /link   {note1, note2}        -> cria [[wikilink]] de note1 -> note2
   POST /tag    {note, tags:[...]}    -> aplica tags (frontmatter ou inline)
   POST /moc    {topic}               -> cria/atualiza MOC em 70_MOCS/
+  POST /swarm  {query, agents?}      -> Multi-Agent Swarm (v2.0)
+  POST /reason {prompt}              -> LLM local Ollama (v2.0, fallback heurístico)
 
 Cache de /search: TTL em memória (padrão) ou Redis se REDIS_URL estiver setado
 e a lib `redis` estiver instalada. Sempre há fallback funcional.
@@ -38,6 +43,15 @@ sys_path = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 if sys_path not in sys.path:
     sys.path.insert(0, sys_path)
 import validate_vault  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# v2.0 — Inovação: semântica, compressão, swarm e LLM local (todos opcionais,
+# com fallback heurístico quando Ollama/embeddings não estão disponíveis).
+# ---------------------------------------------------------------------------
+from semantic import related_notes, suggest  # noqa: E402
+from compress import compress_text, compress_note  # noqa: E402
+from swarm import run_swarm  # noqa: E402
+from llm_local import reason  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Observabilidade (Sprint 5 / M3): metricas + cache de /search (TTL).
@@ -307,6 +321,35 @@ class Handler(BaseHTTPRequestHandler):
                 _METRICS["mcp_requests_total"] += 1
                 _METRICS["mcp_notes_total"] = total
             return self._send({"total": total, "by_dir": by_dir})
+        # ---- v2.0 rotas de inovação (com fallback heurístico) ----
+        if u.path == "/related":
+            try:
+                p = urllib.parse.parse_qs(u.query).get("path", [""])[0]
+                k = int(urllib.parse.parse_qs(u.query).get("k", ["5"])[0])
+                with _METRICS_LOCK:
+                    _METRICS["mcp_requests_total"] += 1
+                return self._send({"path": p, "related": related_notes(VAULT, p, k=k)})
+            except Exception as e:
+                return self._send({"error": f"related failed: {e}"}, 500)
+        if u.path == "/suggest":
+            try:
+                q = urllib.parse.parse_qs(u.query).get("q", [""])[0]
+                k = int(urllib.parse.parse_qs(u.query).get("k", ["5"])[0])
+                with _METRICS_LOCK:
+                    _METRICS["mcp_requests_total"] += 1
+                return self._send({"query": q, "suggestions": suggest(VAULT, q, k=k)})
+            except Exception as e:
+                return self._send({"error": f"suggest failed: {e}"}, 500)
+        if u.path == "/compress":
+            try:
+                p = urllib.parse.parse_qs(u.query).get("path", [""])[0]
+                max_t = int(urllib.parse.parse_qs(u.query).get("max_tokens", ["2000"])[0])
+                with _METRICS_LOCK:
+                    _METRICS["mcp_requests_total"] += 1
+                rep = compress_note(VAULT, p, max_tokens=max_t)
+                return self._send(rep if rep else {"error": "not found"}, 404 if not rep else 200)
+            except Exception as e:
+                return self._send({"error": f"compress failed: {e}"}, 500)
         self._send({"error": "unknown endpoint"}, 404)
 
     def do_POST(self):
@@ -336,6 +379,18 @@ class Handler(BaseHTTPRequestHandler):
                 new = move_note(data["path"], data["new_dir"])
                 return self._send({"moved": new} if new is not None
                                   else {"error": "not found"}, 404 if new is None else 200)
+            # ---- v2.0 ----
+            if u.path == "/swarm":
+                agents = data.get("agents")
+                result = run_swarm(VAULT, data.get("query", ""), agents=agents)
+                with _METRICS_LOCK:
+                    _METRICS["mcp_requests_total"] += 1
+                return self._send(result)
+            if u.path == "/reason":
+                result = reason(data.get("prompt", ""), vault=VAULT)
+                with _METRICS_LOCK:
+                    _METRICS["mcp_requests_total"] += 1
+                return self._send(result)
         except Exception as e:
             return self._send({"error": f"server error: {e}"}, 500)
         self._send({"error": "unknown endpoint"}, 404)
