@@ -49,7 +49,7 @@ function Invoke-BackupTo {
         # robocopy: 0=igual, 1=copiou, >=8=erro
         return ($proc.ExitCode -lt 8)
     } catch {
-        Write-Warning "[MEGA BRAIN] falha ao invocar robocopy para $Dest : $_"
+        Write-Warning ("[MEGA BRAIN] falha ao invocar robocopy para " + $Dest + " : " + $_)
         return $false
     }
 }
@@ -70,24 +70,24 @@ if (Test-DestinoAcessivel -Root $BackupRoot) {
     try { $Dest1 = Join-Path $BackupRoot ("full\" + (Get-Date -Format 'yyyy-MM-dd')) }
     catch { $Dest1 = $null }
 }
-Write-Output "[MEGA BRAIN] tentando backup FULL primario -> $($Dest1)"
+Write-Output ("[MEGA BRAIN] tentando backup FULL primario -> " + $Dest1)
 $ok1 = $false
 if ($Dest1) { $ok1 = Invoke-BackupTo -Dest $Dest1 }
 
 $used = ""
 if ($ok1) {
     $used = $Dest1
-    Write-Output "[MEGA BRAIN] backup FULL ok (primario) -> $Dest1"
+    Write-Output ("[MEGA BRAIN] backup FULL ok (primario) -> " + $Dest1)
 } elseif ($BackupRoot2) {
     $Dest2 = Join-Path $BackupRoot2 ("full\" + (Get-Date -Format 'yyyy-MM-dd'))
-    Write-Warning "[MEGA BRAIN] primario FALHOU — failover para 2o destino -> $Dest2"
+    Write-Warning "[MEGA BRAIN] primario FALHOU -- failover para 2o destino -> $Dest2"
     $ok2 = Invoke-BackupTo -Dest $Dest2
-    if ($ok2) { $used = $Dest2; Write-Output "[MEGA BRAIN] backup FULL ok (failover 2o) -> $Dest2" }
+    if ($ok2) { $used = $Dest2; Write-Output ("[MEGA BRAIN] backup FULL ok (failover 2o) -> " + $Dest2) }
     else      { Write-Error "[MEGA BRAIN] backup FULL FALHOU nos dois destinos."; exit 1 }
 } else {
     Write-Error "[MEGA BRAIN] backup FULL FALHOU (sem 2o destino configurado)."
     exit 1
 }
 
-"$ts|full|$used" | Add-Content -Encoding UTF8 $history
+("$ts|full|$used") | Add-Content -Encoding UTF8 $history
 exit 0
