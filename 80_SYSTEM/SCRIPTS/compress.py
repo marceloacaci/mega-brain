@@ -17,7 +17,17 @@ _CHARS_PER_TOKEN = 4
 
 def estimate_tokens(text):
     """Estimativa de tokens (heurística de 4 chars/token)."""
-    return max(1, len(text or "") // _CHARS_PER_TOKEN)
+    n = len(text or "")
+    if n == 0:
+        return 0          # texto vazio custa 0 tokens (antes retornava 1)
+    return max(1, n // _CHARS_PER_TOKEN)
+
+
+_TRUNC_MARK = "\n[...truncado]"
+# Piso irredutivel: o proprio marcador de truncagem custa tokens. Para
+# max_tokens abaixo disso, o resultado é o marcador sozinho (nao ha como
+# sinalizar truncagem gastando menos). Documentado no contrato de compress_text.
+MIN_TOKENS = 3  # == estimate_tokens(_TRUNC_MARK)
 
 
 def _is_wikilink(line):
@@ -41,6 +51,9 @@ def compress_text(text, max_tokens=2000, keep_links=True):
       - Remove linhas vazias consecutivas e linhas redundantes repetidas.
       - Se ainda exceder max_tokens, trunca preservando o início (cabeçalho MOC).
     Retorna dict {compressed, tokens_before, tokens_after, truncated}.
+
+    CONTRATO: `tokens_after <= max(max_tokens, MIN_TOKENS)`. O piso existe porque
+    o marcador "[...truncado]" precisa caber para sinalizar a truncagem.
     """
     before = estimate_tokens(text)
     lines = (text or "").splitlines()
@@ -66,8 +79,10 @@ def compress_text(text, max_tokens=2000, keep_links=True):
 
     truncated = False
     if estimate_tokens(compressed) > max_tokens:
-        # trunca por linha preservando cabeçalhos
-        budget = max_tokens * _CHARS_PER_TOKEN
+        # trunca por linha preservando cabeçalhos. O marcador de truncagem entra
+        # no orcamento: sem isso, `tokens_after` estourava `max_tokens` (o marcador
+        # era concatenado DEPOIS da contagem), violando o contrato da funcao.
+        budget = max_tokens * _CHARS_PER_TOKEN - len(_TRUNC_MARK)
         cut = []
         total = 0
         for line in compressed.splitlines():
@@ -76,7 +91,7 @@ def compress_text(text, max_tokens=2000, keep_links=True):
                 break
             cut.append(line)
             total += len(line) + 1
-        compressed = "\n".join(cut).strip() + "\n[...truncado]"
+        compressed = "\n".join(cut).strip() + _TRUNC_MARK
         truncated = True
 
     return {

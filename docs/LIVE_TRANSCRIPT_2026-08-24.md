@@ -201,3 +201,26 @@
 - NOVO `tests/test_governance_pii.py` (**20 checagens**), inclui anti-regressao de
   injection e de `sanitize_input`.
 - `tests/run_all.py` -> **13/13 verdes**.
+
+## Iteracao 136-150 — compress.py: contrato violado (S11-G)
+
+- AUDITORIA de `compress.py`. Dois defeitos REAIS:
+  1. **CONTRATO VIOLADO**: `tokens_after` podia ESTOURAR `max_tokens`. O marcador
+     `"\n[...truncado]"` era concatenado DEPOIS de calcular o orcamento, entao
+     `compress_text(t, max_tokens=20)` devolvia `tokens_after=22`. Quem chama a
+     funcao para caber num limite de contexto de LLM recebia mais do que pediu.
+  2. `estimate_tokens("")` retornava **1** (texto vazio nao custa token).
+- CORRECOES: `budget = max_tokens*4 - len(_TRUNC_MARK)` (marcador entra no
+  orcamento); `estimate_tokens("") == 0`.
+- EDGE CASE HONESTO: com `max_tokens=1` o proprio marcador custa ~3 tokens, logo e
+  impossivel respeitar 1. Em vez de fingir, documentei o piso: constante
+  `MIN_TOKENS = 3` + contrato explicito no docstring
+  (`tokens_after <= max(max_tokens, MIN_TOKENS)`). O teste valida o teto real.
+- VALIDACAO por orcamento: max=5 ->3, max=20 ->19, max=50 ->36, max=200 ->36.
+  Todos dentro do teto.
+- NOVO `tests/test_compress_contract.py` (**22 checagens**): invariante do teto,
+  coerencia `truncated` <-> marcador, headings/wikilinks preservados, duplicadas
+  colapsadas, texto vazio, `compress_note` inexistente -> None.
+- PROVA ANTI-TAUTOLOGIA: removi o `- len(_TRUNC_MARK)` do budget -> teste FALHOU
+  com `after=22 teto=20`. Restaurado -> 22/22.
+- `tests/run_all.py` -> **14/14 verdes**.
