@@ -224,3 +224,33 @@
 - PROVA ANTI-TAUTOLOGIA: removi o `- len(_TRUNC_MARK)` do budget -> teste FALHOU
   com `after=22 teto=20`. Restaurado -> 22/22.
 - `tests/run_all.py` -> **14/14 verdes**.
+
+## Iteracao 151-160 — VERIFICACAO CANONICA FINAL + estado de encerramento
+
+- Run `32688862974` (commit b6d2101, o ultimo do worker): **completed / success**
+  nos 5 jobs (Testes, SAST, E2E hooks PowerShell, Lint, Build Docker).
+- Todos os 6 commits deste worker fecharam com CI verde (32688201265, 32688368153,
+  32688589507, 32688862974 confirmados individualmente).
+- Estado final: `python tests/run_all.py` -> **14/14 suites verdes** (worker comecou em 10/10).
+- Servidores de teste 8774 (MCP) e 8784 (http.server) deixados VIVOS por design
+  (regra de seguranca: NAO matar processos). Vault fixture temporario em
+  `%TEMP%/mb_dash_99ggcjvk` — descartavel.
+- Scripts temporarios de verificacao removidos ao final (hermes-verify-trav.py,
+  hermes-verify-pii.py, hermes-verify-fixture.py, dash_check.js).
+
+### Resumo do que o worker entregou (S11 — Hardening)
+| # | Entrega | Evidencia |
+|---|---|---|
+| 1 | Path traversal fechado em 7 rotas | e2e_security.py 5/5, validado contra regressao |
+| 2 | /graph 60s -> 0.36s (180 notas) | medicao direta, 494 arestas |
+| 3 | /validate 15 -> 4 problemas (0 falsos positivos) | test_validate_links.py 6/6 |
+| 4 | mask_pii: parentese solto + falso positivo numerico | test_governance_pii.py 20/20 |
+| 5 | compress: contrato tokens_after <= max_tokens | test_compress_contract.py 22/22 |
+| 6 | -1 os.walk em /validate e -1 em run_swarm | equivalencia provada (188 notas) |
+| 7 | Bug de runtime do dashboard (renderOrphans) | FCS no browser + node --check |
+| 8 | docs/sprints/sprint-11.md + README atualizado | 12 -> 14 suites documentadas |
+
+**CONCLUSAO**: as melhorias SEGURAS de alto valor identificadas por auditoria foram
+esgotadas neste ciclo. As proximas exigiriam mudanca de contrato de rota, nova
+dependencia, ou reindexacao por token invertido (mudanca arquitetural) — fora do
+critério "incremental e seguro". Divida remanescente registrada em sprint-11.md.
