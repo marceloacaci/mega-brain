@@ -24,10 +24,28 @@ import os
 import re
 import sys
 
-VAULT = r"D:\Programas (Disco D)\Obsidian\cofres\Marcelo IA Skills"
+# VAULT resolvido de forma portátil: prefere a env MEGABRAIN_VAULT; senão o diretório
+# pai do repo (este script vive em 80_SYSTEM/SCRIPTS, o vault é o repo raiz). Não usa
+# caminho hardcoded (anti-padrão P3/P5 — quebrava no runner Linux do CI).
+VAULT = os.environ.get("MEGABRAIN_VAULT") or os.path.abspath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 
 WIKILINK = re.compile(r"\[\[([^\]]+)\]\]")
 WORD = re.compile(r"[a-zA-ZÀ-ÿ]{4,}")
+
+
+class VaultPathError(ValueError):
+    """Path recebido tenta sair do vault (path traversal)."""
+
+
+def _vault_path(rel):
+    """Resolve `rel` DENTRO do vault; levanta VaultPathError se escapar (P16/S11)."""
+    base = os.path.abspath(VAULT)
+    fp = os.path.abspath(os.path.join(base, (rel or "").strip("/\\").replace("\\", "/")))
+    if os.path.normcase(fp) != os.path.normcase(base) and \
+            not os.path.normcase(fp).startswith(os.path.normcase(base) + os.sep):
+        raise VaultPathError("path fora do vault")
+    return fp
 
 
 def _notes():
@@ -55,7 +73,10 @@ def _wiki_count(path):
 
 def suggest(project):
     """Retorna a nota-hub do projeto (mais wikilinks)."""
-    proj_dir = os.path.join(VAULT, "30_PROJECTS", project)
+    try:
+        proj_dir = _vault_path(os.path.join("30_PROJECTS", project))
+    except VaultPathError:
+        return {"project": project, "suggested": None, "reason": "projeto fora do vault"}
     if not os.path.isdir(proj_dir):
         return {"project": project, "suggested": None, "reason": "projeto inexistente"}
     candidatos = [os.path.join(proj_dir, f) for f in os.listdir(proj_dir) if f.endswith(".md")]
@@ -72,7 +93,10 @@ def suggest(project):
 
 def correlate(note_rel):
     """Notas fora do projeto que compartilham palavras-chave com a nota dada."""
-    target = os.path.join(VAULT, note_rel)
+    try:
+        target = _vault_path(note_rel)
+    except VaultPathError:
+        return {"note": note_rel, "related": [], "reason": "nota fora do vault"}
     if not os.path.exists(target):
         return {"note": note_rel, "related": [], "reason": "nota inexistente"}
     try:

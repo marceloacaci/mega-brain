@@ -328,6 +328,22 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
   qualquer default p/ 400 faz o teste FALHAR.
 - `run_all.py`: +1 suíte -> **17/17 verdes** (era 16/16).
 
-### Iter 8 — Pendente
-- Audit final de módulos restantes (watcher.py, config import) e encerramento do worker.
+### Iter 8 — Refatoração segura: predictive.py (traversal + VAULT portátil)
+- DEFEITO REAL: `predictive.py` tinha `VAULT` hardcoded no caminho Windows do dev
+  (anti-padrão P3/P5: quebra no runner Linux do CI) e `correlate(note_rel)`/`suggest(project)`
+  faziam `os.path.join(VAULT, arg)` SEM confinamento -> path traversal
+  (`correlate('../../etc/passwd')` abria arquivo de fora).
+- FIX: VAULT resolvido portátilmente (env MEGABRAIN_VAULT ou pai do repo); ambas as
+  funções usam `_vault_path` (VaultPathError) como no S11. `correlate`/`suggest` com
+  traversal retornam `{reason:'nota/prj fora do vault'}` sem ler arquivo externo.
+- NOVO `tests/test_predictive_security.py` (4 checagens); reverter confinamento -> 1 FAIL
+  (anti-tautologia provada).
+- `run_all.py`: +1 suíte -> **18/18 verdes** (era 17/17).
+
+### Iter 9 — Encerramento do worker (continuação delegada)
+- Total entregue neste worker: 4 commits (6af556e, 60c1c31, 7035a10, 6fe71b4, +pendente)
+  elevando 14/14 -> 18/18 suítes verdes, +4 novas suítes de regressão não-tautológicas.
+- Todos os commits com CI canônica 5/5 jobs success. Live transcript atualizado em cada passo.
+- Próximo worker (re-dispatch) pode atacar: reaproveitar cache de /stats em swarm,
+  ou unificar nota-ceiling numa constante compartilhada (hoje repetido em semantic/graph).
 
