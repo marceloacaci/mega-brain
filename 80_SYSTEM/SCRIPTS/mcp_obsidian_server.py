@@ -134,8 +134,26 @@ def _metrics_text():
         lines.append(f"mcp_cache_entries {len(_CACHE)}")
     return "\n".join(lines) + "\n"
 
+class VaultPathError(ValueError):
+    """Path recebido tenta sair do vault (path traversal)."""
+
+
 def _vault_path(rel):
-    return os.path.join(VAULT, rel.strip("/\\"))
+    """Resolve `rel` DENTRO do vault, recusando path traversal.
+
+    Endurecimento de rota: sem isto, `path=../../../Windows/win.ini` em /read
+    (ou em POST /write) resolvia para fora do vault, permitindo leitura e
+    ESCRITA arbitraria no disco. Levanta VaultPathError se escapar.
+    """
+    rel = (rel or "").replace("\\", "/").strip("/")
+    if not rel:
+        raise VaultPathError("path vazio")
+    base = os.path.abspath(VAULT)
+    fp = os.path.abspath(os.path.join(base, rel))
+    if os.path.normcase(fp) != os.path.normcase(base) and \
+            not os.path.normcase(fp).startswith(os.path.normcase(base) + os.sep):
+        raise VaultPathError("path fora do vault")
+    return fp
 
 def search(q):
     q = q.lower()
@@ -171,7 +189,10 @@ def cached_search(q):
     return res
 
 def read_note(rel):
-    fp = _vault_path(rel)
+    try:
+        fp = _vault_path(rel)
+    except VaultPathError:
+        return None
     if not os.path.exists(fp):
         return None
     with open(fp, encoding="utf-8") as fh:
@@ -434,6 +455,9 @@ class Handler(BaseHTTPRequestHandler):
                 with _METRICS_LOCK:
                     _METRICS["mcp_requests_total"] += 1
                 return self._send(result)
+        except VaultPathError as e:
+            # Endurecimento: path traversal em rotas de escrita -> 400, nunca 500
+            return self._send({"error": f"path invalido: {e}"}, 400)
         except Exception as e:
             return self._send({"error": f"server error: {e}"}, 500)
         self._send({"error": "unknown endpoint"}, 404)

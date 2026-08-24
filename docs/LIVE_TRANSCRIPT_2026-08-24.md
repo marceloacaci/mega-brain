@@ -63,3 +63,26 @@
 - BENCHMARK no vault REAL (180 notas): antes ~60s -> **0.36s** (nodes=180, edges=494,
   wikilink=209). Ganho ~165x. `/graph` agora e snappy mesmo sem o cache do P11.
 - `python tests/run_all.py` pos-mudanca -> **10/10 verdes**.
+
+## Iteracao 59-70 — Endurecimento de rotas: PATH TRAVERSAL (S11)
+
+- AUDITORIA das rotas do MCP: `_vault_path(rel)` era
+  `os.path.join(VAULT, rel.strip("/\\"))` — SEM confinamento ao vault.
+- VULNERABILIDADE REAL confirmada com script temp
+  (`%TEMP%/hermes-verify-trav.py`): `path=../../../Windows/win.ini` resolvia para
+  `D:\Programas (Disco D)\Windows\win.ini` (fora do vault). Impacto:
+  * `GET /read?path=../secret.md` -> LEITURA arbitraria de arquivo do disco.
+  * `POST /write {"path":"../evil.md"}` -> ESCRITA arbitraria fora do vault.
+  Afetava tambem /append /link /tag /rename /move (todas passam por _vault_path).
+- CORRECAO (central, 1 ponto): `_vault_path` agora normaliza, resolve com
+  `os.path.abspath` e exige que o resultado esteja sob o vault
+  (`os.path.normcase(...).startswith(base + os.sep)`), senao levanta
+  `VaultPathError` (nova excecao). `read_note` trata como None (404) e o
+  `do_POST` mapeia `VaultPathError` -> **400** (nao 500).
+- NOVO TESTE `tests/e2e_security.py` (5 checagens, padroes P3/P5/P7/P9):
+  read legitimo 200 / read traversal 404 sem vazar / write traversal 400 /
+  nenhum arquivo criado fora do vault / write legitimo 200.
+- PROVA DE QUE O TESTE PEGA A REGRESSAO: reinjetei o `_vault_path` antigo ->
+  o teste FALHOU 3/5 expondo `{'content': 'SEGREDO\n'}` e criando `evil.md`
+  fora do vault (rc=1). Restaurado -> rc=0. Teste tem valor real, nao e tautologico.
+- `tests/run_all.py`: suite registrada -> **11/11 verdes** (era 10/10).

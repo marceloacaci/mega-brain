@@ -26,6 +26,7 @@ SUITE = [
     ("E2E Ollama S10-A (skip se ausente)", ["python", "tests/e2e_ollama.py"]),
     ("E2E Dashboard S10-B (grafo+html)", ["python", "tests/e2e_dashboard.py"]),
     ("E2E Governanca S10-C (injection+PII)", ["python", "tests/e2e_governance.py"]),
+    ("E2E Seguranca S11 (path traversal)", ["python", "tests/e2e_security.py"]),
     ("E2E integração (fluxo fim-a-fim)", ["python", "tests/e2e_integration.py"]),
 ]
 if not IN_CI:
