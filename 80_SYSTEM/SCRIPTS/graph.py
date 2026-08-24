@@ -110,10 +110,20 @@ def build_graph(vault, k=3, limit=600):
         lookup.setdefault(n["stem"].lower(), rel)
         lookup.setdefault(n["title"].lower(), rel)
 
-    # tokens pre-computados UMA vez por nota (antes: related_notes re-lia e
-    # re-tokenizava o vault inteiro para CADA nota -> O(n^2) de I/O em disco).
+    # tokens/embeddings pre-computados UMA vez por nota (antes: related_notes
+    # re-lia e re-tokenizava o vault inteiro para CADA nota -> O(n^2) de I/O em
+    # disco, tanto no caminho Jaccard quanto no de embeddings/Ollama).
     use_embeddings = bool(os.environ.get("OLLAMA_URL", "").strip())
     tokens = {}
+    embeds = {}
+    if use_embeddings:
+        try:
+            from semantic import _ollama_embed
+            for rel, n in notes.items():
+                embeds[rel] = _ollama_embed(n["text"])
+        except Exception:
+            embeds = {}
+            use_embeddings = False
     if not use_embeddings:
         try:
             from semantic import _tokens as _sem_tokens
@@ -135,9 +145,24 @@ def build_graph(vault, k=3, limit=600):
                 if key not in seen:
                     seen.add(key)
                     edges.append({"source": rel, "target": trel, "weight": 1.0, "kind": "wikilink"})
-        # arestas semanticas
+        # arestas semanticas (pre-computadas: embeddings OU Jaccard em tokens)
         try:
-            if tokens:
+            if use_embeddings and embeds:
+                from semantic import _cosine
+                tgt = embeds.get(rel)
+                if tgt is not None:
+                    scored = []
+                    for orel, e in embeds.items():
+                        if orel == rel or e is None:
+                            continue
+                        sc = _cosine(tgt, e)
+                        if sc > 0:
+                            scored.append((sc, orel))
+                    scored.sort(reverse=True)
+                    rel_out = [{"path": orel, "score": round(s, 4)} for s, orel in scored[:k]]
+                else:
+                    rel_out = []
+            elif tokens:
                 a = tokens.get(rel) or set()
                 scored = []
                 for orel, b in tokens.items():
@@ -152,9 +177,7 @@ def build_graph(vault, k=3, limit=600):
                 scored.sort(reverse=True)
                 rel_out = [{"path": orel, "score": round(s, 4)} for s, orel in scored[:k]]
             else:
-                # caminho com embeddings (Ollama): delega ao semantic.py
-                from semantic import related_notes
-                rel_out = related_notes(vault, rel, k=k, limit=limit)
+                rel_out = []
             for r in rel_out:
                 trel = r["path"]
                 if trel == rel:

@@ -103,10 +103,19 @@ def compress_text(text, max_tokens=2000, keep_links=True):
 
 
 def compress_note(vault, path, max_tokens=2000):
-    """Lê a nota em `path` e retorna compress_text() aplicado."""
+    """Lê a nota em `path` e retorna compress_text() aplicado.
+
+    Endurecido (P16/S11): confina `path` ao vault via _vault_rel; levanta
+    VaultPathError em traversal (evita ler arquivos arbitrários fora do vault).
+    """
     import os
-    rel = path.strip("/\\").replace("\\", "/").replace("/", os.sep)
-    fp = os.path.join(vault, rel)
+    # reusa a confinacao de semantic.py se disponivel (contrato unico)
+    try:
+        from semantic import _vault_rel
+        rel = _vault_rel(vault, path)
+    except ImportError:
+        rel = path.strip("/\\").replace("\\", "/").replace("/", os.sep)
+    fp = os.path.join(os.path.abspath(vault), rel)
     if not os.path.exists(fp):
         return None
     with open(fp, encoding="utf-8", errors="ignore") as fh:

@@ -381,6 +381,9 @@ class Handler(BaseHTTPRequestHandler):
                     _METRICS["mcp_requests_total"] += 1
                 return self._send({"path": p, "related": related_notes(VAULT, p, k=k)})
             except Exception as e:
+                # traversal (semantic.VaultPathError) -> 400, igual às rotas de escrita
+                if type(e).__name__ == "VaultPathError":
+                    return self._send({"error": f"path invalido: {e}"}, 400)
                 return self._send({"error": f"related failed: {e}"}, 500)
         if u.path == "/suggest":
             try:
@@ -400,6 +403,9 @@ class Handler(BaseHTTPRequestHandler):
                 rep = compress_note(VAULT, p, max_tokens=max_t)
                 return self._send(rep if rep else {"error": "not found"}, 404 if not rep else 200)
             except Exception as e:
+                # traversal (semantic.VaultPathError) -> 400, igual às rotas de escrita
+                if type(e).__name__ == "VaultPathError":
+                    return self._send({"error": f"path invalido: {e}"}, 400)
                 return self._send({"error": f"compress failed: {e}"}, 500)
         if u.path == "/graph":
             try:

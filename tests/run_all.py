@@ -30,6 +30,7 @@ SUITE = [
     ("Unidade validate links S11 (6)", ["python", "tests/test_validate_links.py"]),
     ("Unidade governance PII S11 (20)", ["python", "tests/test_governance_pii.py"]),
     ("Unidade compress contrato S11 (22)", ["python", "tests/test_compress_contract.py"]),
+    ("Unidade segurança v2 S12 (traversal+On2)", ["python", "tests/test_security_v2.py"]),
     ("E2E integração (fluxo fim-a-fim)", ["python", "tests/e2e_integration.py"]),
 ]
 if not IN_CI:

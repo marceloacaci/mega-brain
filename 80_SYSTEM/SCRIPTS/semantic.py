@@ -15,6 +15,35 @@ import math
 import os
 import re
 
+
+class VaultPathError(ValueError):
+    """Path recebido tenta sair do vault (path traversal).
+
+    Equivalente ao VaultPathError do mcp_obsidian_server.py, mas definido aqui
+    para que semantic.py confine o `path` de related_notes SEM acoplamento
+    circular (o server importa semantic, nao o contrario). Usado tambem como
+    contrato de erro nas rotas /related do MCP (P16/S11).
+    """
+
+
+def _vault_rel(vault, path):
+    """Resolve `path` DENTRO do vault; levanta VaultPathError se escapar.
+
+    Sem isto, `_norm_rel('../../../x.md')` resolvia para fora do vault e
+    related_notes/compress abriam arquivos arbitrarios (traversal de leitura).
+    """
+    base = os.path.abspath(vault)
+    rel = (path or "").strip("/\\").replace("\\", "/")
+    if not rel:
+        raise VaultPathError("path vazio")
+    fp = os.path.abspath(os.path.join(base, rel))
+    if os.path.normcase(fp) != os.path.normcase(base) and \
+            not os.path.normcase(fp).startswith(os.path.normcase(base) + os.sep):
+        raise VaultPathError("path fora do vault")
+    # retorna o rel normalizado em separadores nativos p/ reuso seguro
+    return rel.replace("/", os.sep)
+
+
 # ---------------------------------------------------------------------------
 # Embeddings locais (Ollama / nomic-embed-text) — OPCIONAL.
 # Só usa se OLLAMA_URL estiver setado e o endpoint responder. Caso contrário,
@@ -78,13 +107,19 @@ def _vault_notes(vault, limit=400):
 
 
 def _norm_rel(vault, path):
-    """Junta vault + path normalizando separadores (cross-platform)."""
-    rel = path.strip("/\\").replace("\\", "/").replace("/", os.sep)
-    return os.path.join(vault, rel)
+    """Junta vault + path normalizando separadores (cross-platform).
+
+    Endurecido (P16/S11): confina ao vault e levanta VaultPathError em traversal.
+    """
+    rel = _vault_rel(vault, path)
+    return os.path.join(os.path.abspath(vault), rel)
 
 
 def related_notes(vault, path, k=5, limit=400):
-    """Notas mais relacionadas a `path` (cosseno de embeddings se Ollama, senão Jaccard)."""
+    """Notas mais relacionadas a `path` (cosseno de embeddings se Ollama, senão Jaccard).
+
+    Levanta VaultPathError se `path` escapar do vault (P16/S11).
+    """
     target = None
     notes = []
     target_fp = _norm_rel(vault, path)
@@ -93,7 +128,7 @@ def related_notes(vault, path, k=5, limit=400):
             target = txt
         notes.append((rel, txt))
     if target is None:
-        # tenta ler direto
+        # tenta ler direto (ja confinado por _norm_rel)
         if os.path.exists(target_fp):
             with open(target_fp, encoding="utf-8", errors="ignore") as fh:
                 target = fh.read()

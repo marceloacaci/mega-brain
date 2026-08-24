@@ -253,4 +253,49 @@
 **CONCLUSAO**: as melhorias SEGURAS de alto valor identificadas por auditoria foram
 esgotadas neste ciclo. As proximas exigiriam mudanca de contrato de rota, nova
 dependencia, ou reindexacao por token invertido (mudanca arquitetural) — fora do
-critério "incremental e seguro". Divida remanescente registrada em sprint-11.md.
+criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
+
+## Continuacao 2026-08-24 (worker delegado) — Sprint 12 (Hardening v2.0 + auditoria)
+
+### Iter 1 — Baseline + auditoria contra VAULT REAL
+- CMD: `git log` / `git status` / `node --version` / `python --version`
+- OUT: HEAD=623102a; python 3.11.15; node v26.5.0; 6 arquivos 50_METRICS untracked.
+- CMD: `python tests/run_all.py` -> **14/14 suítes verdes** (baseline herdado).
+- METODO (P16/S11): rodei cada modulo contra o VAULT REAL em script temp e olhei a saida,
+  em vez de confiar no verde do run_all.
+
+### Iter 2 — 3 defasagens REAIS encontradas (não pegadas pelo CI 14/14)
+1. **Path traversal em /related e /compress (S11 incompleto)**: `semantic.related_notes`
+   e `compress.compress_note` usavam `_norm_rel` QUE NAO confinava ao vault; o S11
+   endureceu `_vault_path` no server mas ESQUECEU essas funcoes de biblioteca + as
+   rotas v2.0. `/compress?path=../../../x.md` abria arquivo arbitrario (leak de leitura).
+2. **/graph O(n^2) de I/O no modo embeddings (regressao do P11)**: `build_graph` chamava
+   `related_notes(vault, rel, ...)` POR NOTA quando `OLLAMA_URL` setado -> re-walk do
+   vault inteiro para cada nota. O P11 consertou o caminho Jaccard mas o de embeddings
+   tinha regredido.
+3. `compress` contract: confirmado OK (`tokens_after=187 <= 200`); falsa suspeita inicial
+   (eu imprimira `len(dict)` por engano).
+
+### Iter 3 — Fixes S12
+- `semantic.py`: adicionado `VaultPathError` + `_vault_rel()` (confinamento ao vault);
+  `_norm_rel` e `related_notes` agora levantam em traversal. Mesmo contrato de
+  `mcp_obsidian_server._vault_path`.
+- `compress.py`: `compress_note` confina via `_vault_rel` (VaultPathError em traversal).
+- `graph.py`: modo embeddings agora PRE-COMPUTA embeddings 1x (loop `embeds`) e faz
+  cosseno pairwise em memoria; removido o `related_notes` per-note. Caminho Jaccard
+  ja era O(n); agora embeddings tambem.
+- `mcp_obsidian_server.py`: rotas `/related` e `/compress` capturam `VaultPathError`
+  (por nome de classe) -> 400 (igual as rotas de escrita), nunca 500 silencioso.
+
+### Iter 4 — Teste de regressão não-tautológico
+- NOVO `tests/test_security_v2.py` (**7 checagens**): traversal em `_norm_rel`,
+  `related_notes`, `compress_note`; O(n^2) ausente (checagem estatica de que nao ha
+  chamada per-note de related_notes + grafo gera arestas em modo embeddings stubado).
+- PROVA ANTI-TAUTOLOGIA: reinseri o bug (per-note `related_notes`) -> checagem estatica
+  detecta `per-note=True` (teste FALHARIA). Fixado -> 7/7.
+- `run_all.py`: +1 suíte -> **15/15 verdes** (era 14/14).
+
+### Iter 5 — Pendente/FCS
+- FCS do dashboard no browser (P10–P14): a fazer neste worker.
+- Cronograma/sprints em 30_PROJECTS + docs: a fazer.
+
