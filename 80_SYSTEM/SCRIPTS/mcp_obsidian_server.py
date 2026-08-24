@@ -51,7 +51,7 @@ if sys_path not in sys.path:
     sys.path.insert(0, sys_path)
 import validate_vault  # noqa: E402
 from validate_vault import validate_cached  # noqa: E402
-from vault_stats import count_by_dir  # noqa: E402
+from vault_stats import count_by_dir, count_by_dir_cached  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # v2.0 — Inovação: semântica, compressão, swarm e LLM local (todos opcionais,
@@ -64,6 +64,7 @@ from llm_local import reason  # noqa: E402
 from graph import build_graph_cached  # noqa: E402
 from recent import recent_notes, recent_notes_cached  # noqa: E402
 from tags import tag_counts, tag_counts_cached  # noqa: E402
+from backlinks import backlinks, backlinks_cached  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Observabilidade (Sprint 5 / M3): metricas + cache de /search (TTL).
@@ -345,12 +346,13 @@ class Handler(BaseHTTPRequestHandler):
                               else {"error": "not found"}, 404 if c is None else 200)
         if u.path == "/stats":
             # Contagem real de notas .md por pasta-raiz (sem ler o conteúdo).
-            # Reusa vault_stats.count_by_dir (compartilhado com swarm._count_md).
-            total, by_dir = count_by_dir(VAULT)
+            # Reusa vault_stats.count_by_dir_cached (P11-style: evita re-varredura
+            # a cada poll do dashboard; invalida por mtime do vault ou TTL).
+            (total, by_dir), was_cached = count_by_dir_cached(VAULT, ttl=_CACHE_TTL)
             with _METRICS_LOCK:
                 _METRICS["mcp_requests_total"] += 1
                 _METRICS["mcp_notes_total"] = total
-            return self._send({"total": total, "by_dir": by_dir})
+            return self._send({"total": total, "by_dir": by_dir, "cached": was_cached})
         if u.path == "/recent":
             # Notas modificadas mais recentemente (utilitário somente-leitura).
             try:
@@ -381,6 +383,25 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send({"tags": data, "cached": was_cached})
             except Exception as e:
                 return self._send({"error": f"tags failed: {e}"}, 500)
+        if u.path == "/backlinks":
+            # S17: quem aponta para esta nota (vizinhanca de entrada, sem grafo inteiro).
+            try:
+                qp = urllib.parse.parse_qs(u.query)
+                rel = qp.get("path", [""])[0]
+                if not rel:
+                    return self._send({"error": "parametro 'path' obrigatorio"}, 400)
+                with _METRICS_LOCK:
+                    _METRICS["mcp_requests_total"] += 1
+                data, was_cached = backlinks_cached(VAULT, rel, ttl=_CACHE_TTL)
+                data["cached"] = was_cached
+                return self._send(data)
+            except FileNotFoundError:
+                return self._send({"error": "nota nao encontrada"}, 404)
+            except Exception as e:
+                # traversal -> 400 (igual as demais rotas com path do usuario)
+                if type(e).__name__ == "VaultPathError":
+                    return self._send({"error": f"path invalido: {e}"}, 400)
+                return self._send({"error": f"backlinks failed: {e}"}, 500)
         if u.path == "/activity":
             # Heatmap de atividade: conta notas diarias (20_DAILY_NOTES) por data.
             try:

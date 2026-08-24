@@ -28,7 +28,10 @@ _FM_TAGS_INLINE = re.compile(r"tags:\s*\[([^\]]*)\]", re.IGNORECASE)
 
 
 def _normalize(tag):
-    t = tag.strip().lower()
+    # Remove whitespace e aspas envolventes (frontmatter `tags: ["a", "b"]`
+    # ou `- "a"`), senão a tag vira `"a"` (defeito real visto no vault: a tag
+    # `"projeto/pentagon-mind"` chegava COM aspas ao dashboard).
+    t = tag.strip().strip('"\'').strip().lower()
     return t
 
 

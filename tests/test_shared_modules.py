@@ -15,6 +15,7 @@ Todos os checks falham se a refactor for revertida (nao sao tautologicos):
 
 import os
 import sys
+import time
 import tempfile
 import shutil
 
@@ -94,6 +95,25 @@ def main():
               f"by={by_vs}")
     finally:
         shutil.rmtree(d2, ignore_errors=True)
+
+    # 4) cache de /stats (P11-style): 1o acesso miss, 2o hit; invalida ao mexer .md
+    d3 = tempfile.mkdtemp(prefix="mb_stats_cache_")
+    try:
+        for nm in ("a.md", "b.md"):
+            open(os.path.join(d3, nm), "w").write("# t\n")
+        (_, _), hit1 = vault_stats.count_by_dir_cached(d3)
+        (_, _), hit2 = vault_stats.count_by_dir_cached(d3)
+        check("/stats cache: 1o acesso miss", hit1 is False)
+        check("/stats cache: 2o acesso hit", hit2 is True)
+        # mexe num .md -> mtime muda -> proximo acesso miss de novo
+        time.sleep(0.01)
+        with open(os.path.join(d3, "a.md"), "a") as fh:
+            fh.write("\n# y\n")
+        os.utime(os.path.join(d3, "a.md"), None)
+        (_, _), hit3 = vault_stats.count_by_dir_cached(d3)
+        check("/stats cache: invalida ao mexer .md", hit3 is False)
+    finally:
+        shutil.rmtree(d3, ignore_errors=True)
 
     print("\nRESULTADO: %d passaram, %d falharam" % (PASS, FAIL))
     return 0 if FAIL == 0 else 1

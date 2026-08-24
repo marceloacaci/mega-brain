@@ -63,8 +63,22 @@ def main():
         # ordenacao descrescente por count
         counts = [t["count"] for t in tags]
         check("ordenado por count desc", counts == sorted(counts, reverse=True))
-        # limite respeitado
+        # limit respeitado
         check("limit=2 -> 2", len(tag_counts(d, limit=2)) == 2)
+        # ANTI-TAUTOLOGIA: tags com aspas no frontmatter NAO devem reter aspas
+        # (defeito real do vault: `"projeto/pentagon-mind"` chegava com aspas).
+        # Usa top_only=False para a tag sobreviver (count==1) e o teste pegar o bug.
+        qd = tempfile.mkdtemp(prefix="mb_tags_quote_")
+        try:
+            with open(os.path.join(qd, "q.md"), "w", encoding="utf-8") as fh:
+                fh.write('---\ntags: ["projeto/pentagon-mind", \'urgente\']\n---\n# q\n')
+            qtags = {t["tag"]: t["count"] for t in tag_counts(qd, limit=20, top_only=False)}
+            check("tag com aspas duplas sem aspas", '"projeto/pentagon-mind"' not in qtags)
+            check("tag com aspas simples sem aspas", "'urgente'" not in qtags)
+            check("tag quote-stripped normalizada", "projeto/pentagon-mind" in qtags)
+            check("tag aspas-simples normalizada", "urgente" in qtags)
+        finally:
+            shutil.rmtree(qd, ignore_errors=True)
         # tag inline sem frontmatter (C) contada
         check("inline sem fm contado", by.get("financeiro", 0) >= 2)
         # vault sem tags -> lista vazia

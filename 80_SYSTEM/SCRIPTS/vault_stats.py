@@ -29,3 +29,58 @@ def count_by_dir(vault):
         by_dir[top] = by_dir.get(top, 0) + len(md)
         total += len(md)
     return total, by_dir
+
+
+import time
+import threading
+
+# Cache thread-safe (P11-style) p/ /stats: evita re-varrer o vault a cada poll
+# do dashboard. Invalidado por assinatura de mtime do vault OU TTL.
+_STATS_CACHE = {"mtime": 0.0, "data": None, "built_at": 0.0}
+_STATS_LOCK = threading.Lock()
+_STATS_DEFAULT_TTL = 60.0  # segundos
+
+
+def _vault_mtime_signature(vault):
+    """Retorna (mtime_max, contagem) das notas .md — usado p/ invalidar cache.
+
+    Invalida o cache de /stats quando qualquer .md muda (mesmo critério dos
+    caches de /recent e /tags).
+    """
+    newest = 0.0
+    count = 0
+    for root, _, files in os.walk(vault):
+        if ".obsidian" in root or ".trash" in root:
+            continue
+        for f in files:
+            if not f.endswith(".md"):
+                continue
+            try:
+                m = os.path.getmtime(os.path.join(root, f))
+            except OSError:
+                continue
+            if m > newest:
+                newest = m
+            count += 1
+    return newest, count
+
+
+def count_by_dir_cached(vault, ttl=_STATS_DEFAULT_TTL):
+    """Versão cacheada de count_by_dir (invalida por mtime do vault ou TTL).
+
+    Retorna ((total, by_dir), foi_cacheado). Thread-safe. Semântica idêntica a
+    count_by_dir() quando há miss.
+    """
+    with _STATS_LOCK:
+        cached = _STATS_CACHE
+        if cached["data"] is not None:
+            sig = _vault_mtime_signature(vault)
+            if sig[0] == cached["mtime"] and (time.time() - cached["built_at"]) < ttl:
+                return cached["data"], True
+    data = count_by_dir(vault)
+    mtime, _ = _vault_mtime_signature(vault)
+    with _STATS_LOCK:
+        _STATS_CACHE["mtime"] = mtime
+        _STATS_CACHE["data"] = data
+        _STATS_CACHE["built_at"] = time.time()
+    return data, False
