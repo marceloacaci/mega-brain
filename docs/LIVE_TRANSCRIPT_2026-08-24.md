@@ -549,3 +549,25 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
   Sem mais melhorias SEGURAS de alto valor identificadas (auditoria P16 exaustiva
   contra o vault real não achou defeitos catastróficos remanescentes). Servidores
   de teste 8820/8821 deixados VIVOS (regra: não matar processos).
+
+### Iter 9 — S20 (/links) do worker irmao + caso de porta zumbi (P10)
+- CONTEXTO: worker irmao acrescentou S20 — endpoint `/links` (wikilinks de saida)
+  com `backlinks.links()`/`links_cached()` ja implementados e rota no MCP; +
+  `tests/e2e_links.py` (10 asserts) e `tests/test_links.py` (unit). Suítes subiram
+  29 -> 31. O teste e2e usava `_free_port()` dinamico (correto, P5/P10).
+- DEFEITO TRANSITORIO achado: `run_all` reportou 30/31 com `e2e_links` FAIL (404).
+  Causa REAL (P10 gotcha): uma PORTA ZUMBI (8906) de run anterior do irmao ainda
+  estava ouvindo com um vault fixture antigo; o teste bateu no servidor zumbi e
+  recebeu 404 do http.server/endpoint ausente. Confirmado: `curl 8906/health` ->
+  JSON de um vault fixture temporario alheio. NÃO era bug de codigo (em porta
+  fresca o /links responde 200 com payload correto).
+- CORRECAO (minima, test-only): ao editar e2e_links.py inadvertidamente dupliquei
+  `import socket`; reverti para o arquivo valido do irmao (unico import, porta
+  dinamica). `python tests/e2e_links.py` -> 10/10 OK. `run_all` -> **31/31 verde**.
+- REGRA DE SEGURANCA: NAO matei o processo zumbi (proibido pela tarefa); o
+  colisao se resolve sozinho pois o teste ja usa porta dinamica. CI canonica
+  (runner fresco) nao tem zumbi -> verde de verdade.
+- ESTADO: 31/31 suítes verdes localmente. Arquivos do irmao (backlinks.py,
+  mcp_obsidian_server.py, web/dashboard.html, e2e_links.py, test_links.py,
+  run_all.py, PROMPT_MESTRE_v2.md) permanecem como trabalho em curso dele;
+  este worker nao os comitou (evita conflito de autoria).
