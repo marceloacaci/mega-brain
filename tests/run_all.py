@@ -37,6 +37,8 @@ SUITE = [
     ("Unidade modulos compartilhados S13 (const+guards)", ["python", "tests/test_shared_modules.py"]),
     ("Unidade notas recentes S14 (ordenacao+limit+cutoff)", ["python", "tests/test_recent.py"]),
     ("E2E notas recentes S14 (rota /recent)", ["python", "tests/e2e_recent.py"]),
+    ("Unidade nuvem de tags S15 (frontmatter+inline+top_only)", ["python", "tests/test_tags.py"]),
+    ("E2E nuvem de tags S15 (rota /tags)", ["python", "tests/e2e_tags.py"]),
     ("E2E integração (fluxo fim-a-fim)", ["python", "tests/e2e_integration.py"]),
 ]
 if not IN_CI:

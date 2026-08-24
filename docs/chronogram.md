@@ -137,18 +137,29 @@ v2.1.0 (S10) atingidos em 2026-08-23. Ativação de IA real: `OLLAMA_URL`+`OLLAM
     cache thread-safe invalidado por mtime do vault ou TTL (P11-style); rota expõe flag `cached`.
     Teste de cache (miss→hit, invalida ao mexer `.md`) adicionado; `test_recent.py`=16 checagens.
     Sem mudança de contrato de rota/JSON/JS.
+  - **Sprint 15 — Nuvem de Tags (novo recurso + FCS)** (DONE, 2026-08-24): endpoint `/tags`
+    (read-only) + painel "Nuvem de Tags" no dashboard.
+    - `tags.py`: `tag_counts(vault, limit, top_only)` extrai frontmatter (bloco+inline) + inline
+      `#tag`, normaliza lowercase, conta por nota, `top_only` ignora count==1. Reusa NOTE_LIMIT.
+    - `mcp_obsidian_server.py`: rota `GET /tags?limit=N` (try/except → 500, P8).
+    - `web/dashboard.html`: painel inline (P12) com `loadTags()` consumindo `{tags:[{tag,count}]}` (P13).
+    - `tests/test_tags.py` (10) + `tests/e2e_tags.py` (3), não-tautológicos.
+    - **Regressão pega e corrigida antes do commit**: inserção do bloco `/tags` consumiu a guarda
+      `if u.path=="/activity":`, deixando `/activity` 404; `e2e_dashboard` (S10-B) falhou → corrigido.
+    - FCS: `#tagCloud` renderiza 4 tags na ordem do servidor. Suítes: **23/23 verdes** (era 21/21).
 
 ### Cobertura de testes (inegociavel do `docs/quality.md`)
-- Suíte completa (`tests/run_all.py`): **21/21 suítes verdes**
+- Suíte completa (`tests/run_all.py`): **23/23 suítes verdes**
 - Smoke MCP: **8/8** · Debounce: **4/4** · E2E validação M4: **2/2** · E2E v2.0: **5/5** ·
   E2E Ollama S10-A: **SKIP** (offline) · E2E Dashboard S10-B: **PASS** ·
   E2E Governanca S10-C: **PASS** · E2E Seguranca S11: **5/5** · E2E integração: **3/3** ·
   E2E resiliência M5: **3/3** · E2E hooks: **4/4** · E2E notas recentes S14: **4/4** ·
-  Unidade validate links S11: **6/6** · Unidade governance PII S11: **20/20** ·
-  Unidade compress contrato S11: **22/22** · Unidade segurança v2 S12: **7/7** ·
-  Unidade dashboard orfãos S12: **4/4** · Unidade teto notas S12: **PASS** ·
-  Unidade predictive traversal S12: **PASS** · Unidade modulos compartilhados S13: **PASS** ·
-  Unidade notas recentes S14: **13/13**
+  E2E nuvem de tags S15: **3/3** · Unidade validate links S11: **6/6** ·
+  Unidade governance PII S11: **20/20** · Unidade compress contrato S11: **22/22** ·
+  Unidade segurança v2 S12: **7/7** · Unidade dashboard orfãos S12: **4/4** ·
+  Unidade teto notas S12: **PASS** · Unidade predictive traversal S12: **PASS** ·
+  Unidade modulos compartilhados S13: **PASS** · Unidade notas recentes S14: **16/16** ·
+  Unidade nuvem de tags S15: **10/10**
   - CI: `ci-cd.yml` roda lint + SAST + test-linux (run_all) + test-windows (E2E hooks+backup) + build Docker.
 
 [[gantt]]

@@ -197,6 +197,11 @@
           </div>
           <div id="recentList" style="max-height:240px; overflow:auto;">carregando…</div>
         </div>
+
+        <div class="panel">
+          <h4 class="ui header"><i class="tags icon"></i> Nuvem de Tags (vocabulário do vault)</h4>
+          <div id="tagCloud" style="display:flex; flex-wrap:wrap; gap:0.4em; max-height:200px; overflow:auto;">carregando…</div>
+        </div>
       </div>
     </div>
     <div class="ui tiny message" id="status"></div>
@@ -379,6 +384,21 @@
     }
     $('#recentBtn').addEventListener('click', loadRecent);
     $('#recentDays').addEventListener('change', loadRecent);
+    async function loadTags(){
+      try{
+        const r = await fetch(`${MCP}/tags?limit=40`);
+        const data = await r.json();
+        // Contrato do MCP: /tags retorna {tags:[{tag, count}]} ordenado por count desc.
+        const tags = (data.tags || []);
+        if(!tags.length){ $('#tagCloud').innerHTML='<span style="color:var(--muted)">sem tags</span>'; return; }
+        const maxc = Math.max(...tags.map(t=>t.count));
+        $('#tagCloud').innerHTML = tags.map(t=>{
+          const sz = 0.8 + 1.4*(t.count/maxc);  // 0.8em..2.2em
+          const op = 0.45 + 0.55*(t.count/maxc);
+          return `<span style="font-size:${sz.toFixed(2)}em; color:var(--accent); opacity:${op.toFixed(2)}; font-weight:600;">#${t.tag}</span>`;
+        }).join('');
+      }catch(e){ $('#tagCloud').innerHTML='<span style="color:var(--muted)">tags indisponível</span>'; }
+    }
     $('#exportBtn').addEventListener('click', ()=>{
       const svg=$('#graph').cloneNode(true); svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
       const data='<?xml version="1.0"?>\n'+new XMLSerializer().serializeToString(svg);
@@ -404,7 +424,7 @@
     $('#validateBtn').addEventListener('click', runValidate);
     $('#graph').addEventListener('click', (e)=>{ if(e.target.tagName!=='circle') clearFocus(); });
 
-    health(); loadGraph(); loadMetrics(); loadActivity(); loadGrafana(); loadRecent(); testConnection(5);
+    health(); loadGraph(); loadMetrics(); loadActivity(); loadGrafana(); loadRecent(); loadTags(); testConnection(5);
     setInterval(()=>{ health(); loadMetrics(); }, 15000);
   </script>
 </body>

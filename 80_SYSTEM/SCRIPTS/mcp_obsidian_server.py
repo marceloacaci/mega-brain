@@ -62,6 +62,7 @@ from swarm import run_swarm  # noqa: E402
 from llm_local import reason  # noqa: E402
 from graph import build_graph_cached  # noqa: E402
 from recent import recent_notes, recent_notes_cached  # noqa: E402
+from tags import tag_counts  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Observabilidade (Sprint 5 / M3): metricas + cache de /search (TTL).
@@ -356,6 +357,18 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send({"recent": data, "cached": was_cached})
             except Exception as e:
                 return self._send({"error": f"recent failed: {e}"}, 500)
+        if u.path == "/tags":
+            # Nuvem de tags: contagem de tags (frontmatter + inline) do vault.
+            try:
+                try:
+                    tl = int(urllib.parse.parse_qs(u.query).get("limit", ["20"])[0])
+                except ValueError:
+                    tl = 20
+                with _METRICS_LOCK:
+                    _METRICS["mcp_requests_total"] += 1
+                return self._send({"tags": tag_counts(VAULT, limit=tl)})
+            except Exception as e:
+                return self._send({"error": f"tags failed: {e}"}, 500)
         if u.path == "/activity":
             # Heatmap de atividade: conta notas diarias (20_DAILY_NOTES) por data.
             try:
