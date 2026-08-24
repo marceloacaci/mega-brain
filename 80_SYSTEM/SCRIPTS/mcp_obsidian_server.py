@@ -53,7 +53,7 @@ from semantic import related_notes, suggest  # noqa: E402
 from compress import compress_text, compress_note  # noqa: E402
 from swarm import run_swarm  # noqa: E402
 from llm_local import reason  # noqa: E402
-from graph import build_graph  # noqa: E402
+from graph import build_graph_cached  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Observabilidade (Sprint 5 / M3): metricas + cache de /search (TTL).
@@ -285,6 +285,15 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        try:
+            return self._do_get()
+        except Exception as e:  # P8: nunca derruba a conexao; retorna 500 legivel
+            try:
+                return self._send({"error": f"unhandled GET error: {e}"}, 500)
+            except Exception:
+                pass
+
+    def _do_get(self):
         u = urllib.parse.urlparse(self.path)
         if u.path == "/health":
             return self._send({"ok": True, "vault": VAULT})
@@ -377,7 +386,11 @@ class Handler(BaseHTTPRequestHandler):
                 limit = int(urllib.parse.parse_qs(u.query).get("limit", ["600"])[0])
                 with _METRICS_LOCK:
                     _METRICS["mcp_requests_total"] += 1
-                return self._send(build_graph(VAULT, k=k, limit=limit))
+                # P11: usa cache por mtime p/ evitar O(n^2) Jaccard repetido.
+                data, was_cached = build_graph_cached(VAULT, k=k, limit=limit, ttl=_CACHE_TTL)
+                data = dict(data)
+                data["cached"] = was_cached
+                return self._send(data)
             except Exception as e:
                 return self._send({"error": f"graph failed: {e}"}, 500)
         self._send({"error": "unknown endpoint"}, 404)

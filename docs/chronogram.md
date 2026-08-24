@@ -113,3 +113,36 @@ v2.1.0 (S10) atingidos em 2026-08-23. Ativação de IA real: `OLLAMA_URL`+`OLLAM
 [[sprint-8]]
 
 [[README]]
+
+---
+
+## 7. LOG DE MANUTENÇÃO AUTÔNOMA (iterações)
+
+> Registro incremental de melhorias de engenharia aplicadas após o v2.1.0,
+> sempre validadas por `python tests/run_all.py` (10/10 suítes verdes) + FCS no browser.
+
+### Sessão 2026-08-24 — Robustez de automação (P8/P9/P11/P12/P13/P14)
+- **P11 — Cache de grafo por mtime** (mitiga O(n²) Jaccard do `/graph`):
+  - `graph.py`: nova `build_graph_cached(vault, k, limit, ttl)` com cache thread-safe
+    invalidado por assinatura do vault (mtime máximo + contagem de notas) ou TTL.
+    `k`/`limit` fazem parte da chave → `/graph?k=5` e `?k=3` têm caches distintos.
+  - `mcp_obsidian_server.py`: rota `/graph` passa a usar `build_graph_cached`, expondo
+    flag `cached` no JSON. Verificado: 50ms (miss) → 2ms (hit, 25×), invalida ao tocar arquivo.
+- **P8 — `do_GET` envelope total**: todo o `do_GET` envolto em `try/except` que retorna
+  `500 {"error": "unhandled GET error: ..."}` (nunca derruba a conexão). Rotas v2.0 já tinham try/except.
+- **P9 — confirmado**: `_norm_rel` (semantic), `compress_note` (compress) e `_vault_path`
+  (server) já normalizam separadores corretamente; nenhuma alteração necessária.
+- **P12/P14 — remoção de split órfão**: `web/dashboard.js` e `web/dashboard.css` eram
+  duplicados não referenciados (anti-padrão do P12). Removidos; `web/dashboard.html`
+  é o arquivo único inline canônico. Checado `wc -c` após cada write.
+- **P13 — FCS no browser**: dashboard servido em fixture (3–4 notas, 1 órfão) e validado
+  via `browser_console`: grafo (5 nós/7 arestas), donut (5 fatias), heatmap (1 célula),
+  órfãos (1), BFS A→B, foco, busca+highlight, `/validate` e teste de conexão — sem erros de runtime.
+- **Docs**: `80_SYSTEM/README.md` expandido com tabela de scripts + mapa de pitfalls P1–P14;
+  `docs/chronogram.md` com este log de manutenção.
+- **Status**: 10/10 suítes verdes mantidas; `node --check` não aplicável (JS inline).
+
+Próximas melhorias seguras identificadas (não concluídas — baixo risco/baixo ganho):
+- `swarm._agent_metric`/`_agent_indexer` re-walk o vault; poderiam reaproveitar cache de `/stats`.
+- `semantic._vault_notes` (limit=400) vs `graph` (limit=600) — unificar teto de notas.
+

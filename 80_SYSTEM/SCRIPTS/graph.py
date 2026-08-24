@@ -6,9 +6,41 @@ como estrutura serializavel para o dashboard web. Sem dependencias externas.
 """
 import os
 import re
+import time
+import threading
 
 WIKILINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
+
+# ---------------------------------------------------------------------------
+# Cache de grafo por mtime (P11): build_graph e O(n^2) em Jaccard. Para evitar
+# recomputar o grafo a cada /graph (caro em vaults grandes), cacheamos o
+# resultado e invalidamos por mtime + contagem de notas do vault.
+# ---------------------------------------------------------------------------
+_GRAPH_CACHE = {"key": None, "mtime": 0.0, "count": -1, "built_at": 0.0, "data": None}
+_GRAPH_LOCK = threading.Lock()
+
+
+def _vault_signature(vault, limit=600):
+    """Retorna (mtime_max, contagem) das notas .md — usado p/ invalidar cache."""
+    newest = 0.0
+    count = 0
+    for root, _, files in os.walk(vault):
+        if ".obsidian" in root or ".trash" in root:
+            continue
+        for f in files:
+            if not f.endswith(".md"):
+                continue
+            try:
+                m = os.path.getmtime(os.path.join(root, f))
+            except OSError:
+                continue
+            if m > newest:
+                newest = m
+            count += 1
+            if count >= limit:
+                return newest, count
+    return newest, count
 
 
 def _title_of(text, stem):
@@ -99,6 +131,34 @@ def build_graph(vault, k=3, limit=600):
         except Exception:
             pass
     return {"nodes": nodes, "edges": edges}
+
+
+def build_graph_cached(vault, k=3, limit=600, ttl=300):
+    """Versão cacheada de build_graph (P11): evita O(n^2) repetido no /graph.
+
+    O cache e invalidado por assinatura do vault (mtime maximo + contagem de
+    notas) OU por TTL. O parametro `k`/`limit` faz parte da chave, entao
+    /graph?k=5 e /graph?k=3 geram caches distintos. Thread-safe.
+    Retorna (data, was_cached).
+    """
+    key = (k, limit)
+    with _GRAPH_LOCK:
+        cached = _GRAPH_CACHE
+        if (cached["key"] == key and cached["data"] is not None
+                and time.time() - cached["built_at"] < ttl):
+            sig = _vault_signature(vault, limit)
+            if sig[0] == cached["mtime"] and sig[1] == cached["count"]:
+                return cached["data"], True
+    # cache miss / invalidado -> recomputa
+    data = build_graph(vault, k=k, limit=limit)
+    mtime, count = _vault_signature(vault, limit)
+    with _GRAPH_LOCK:
+        _GRAPH_CACHE["key"] = key
+        _GRAPH_CACHE["mtime"] = mtime
+        _GRAPH_CACHE["count"] = count
+        _GRAPH_CACHE["built_at"] = time.time()
+        _GRAPH_CACHE["data"] = data
+    return data, False
 
 
 def _match_rel(target_lower, notes):
