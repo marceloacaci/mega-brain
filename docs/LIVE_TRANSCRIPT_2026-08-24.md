@@ -163,3 +163,19 @@
 - EQUIVALENCIA PROVADA: `total_notes` = 188 antes e depois; `sum(by_dir.values())`
   = 188 (consistente); nenhum agente com 'error'. Comportamento identico.
 - `python tests/run_all.py` -> **12/12 verdes**.
+
+## Iteracao 113-120 — Documentacao: Sprint 11 + README
+
+- NOVO `docs/sprints/sprint-11.md` (7817 bytes, tamanho e tail conferidos — P14):
+  Sprint 11 "Hardening de Seguranca, Performance e Qualidade de Sinal", seguindo o
+  formato dos sprints 1-10 do repo (Sprint Goal, subsprints A-E, Criterios de
+  Aceitacao em Gherkin, DoD, tabela de metricas, riscos/divida remanescente).
+  Documenta S11-A (path traversal), S11-B (grafo 60s->0.36s), S11-C (falsos
+  positivos do validate), S11-D (deduplicacao de os.walk), S11-E (bug FCS do dashboard).
+  Inclui a tabela antes/depois com numeros MEDIDOS, nao estimados.
+- `80_SYSTEM/README.md`: secao "Sprint 11 — Hardening" + contagem de suites
+  atualizada de 10/10 para 12/12.
+- Registrada a divida remanescente honestamente: `_strip_code` e regex (nao parser
+  Markdown) e `build_graph` continua O(n^2) de CPU (agora em memoria, com limit=600).
+- `python tests/run_all.py` -> **12/12 verdes**.
+- `git fetch` + `git status`: master sincronizado com origin/master antes do commit.

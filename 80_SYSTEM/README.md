@@ -36,6 +36,25 @@
   browser (`browser_console`) após qualquer edição.
 - **P14 — writes grandes**: sempre checar `wc -c` + tail após `write_file`/`patch`.
 
+## Sprint 11 — Hardening (segurança, performance, sinal)
+
+Detalhe completo em `docs/sprints/sprint-11.md`.
+
+- **Segurança (crítico)**: `_vault_path` agora **confina o path ao vault**. Antes,
+  `path=../secret.md` permitia LEITURA (`GET /read`) e ESCRITA (`POST /write`)
+  fora do vault — afetava `/read /write /append /link /tag /rename /move`.
+  Nova exceção `VaultPathError` → `404` na leitura, **400** na escrita.
+  Coberto por `tests/e2e_security.py` (validado contra a regressão reinjetada).
+- **Performance `/graph`**: `build_graph` pré-computa tokens 1x por nota em vez de
+  chamar `related_notes` por nota (que re-lia o vault inteiro a cada chamada).
+  Vault real de 180 notas: **~60 s → 0,36 s**. Wikilinks agora usam índice dict.
+- **Sinal do `/validate`**: ignora wikilinks em blocos/inline de código e
+  placeholders de template, resolve `[[pasta/Nota]]` pelo basename e deduplica.
+  Vault real: **15 → 4 problemas** (só os reais). Coberto por
+  `tests/test_validate_links.py`; `e2e_validate.py` segue detectando links quebrados.
+- **Menos I/O**: `validate_vault` faz 1 `os.walk` (era 2); `swarm._count_md`
+  unifica as varreduras de `_agent_indexer` + `_agent_metric` (2 → 1).
+
 ## Como rodar / testar
 
 ```powershell
@@ -44,7 +63,7 @@ python "80_SYSTEM/SCRIPTS/mcp_obsidian_server.py" --port 8770
 # Verificar saúde
 curl http://localhost:8770/health
 
-# Suíte completa de testes (10/10 suítes verdes localmente)
+# Suíte completa de testes (12/12 suítes verdes localmente)
 python tests/run_all.py
 ```
 
