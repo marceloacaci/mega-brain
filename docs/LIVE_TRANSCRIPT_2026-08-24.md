@@ -634,3 +634,17 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
   `docs/sprints/sprint-18.md` (??) apareceram MODIFICADOS/NOVOS sem eu toca-los
   (provavelmente outros workers/sistema) — DEIXEI FORA do commit para nao misturar
   escopo. Se pertencerem ao esforco conjunto, comitar a parte separada.
+
+## Worker continuation (2026-08-24) — S20-B: documenta cache de /related+/suggest na API ref
+
+- `docs/api-reference.md` (arquivo da sessao colaborativa, ainda untracked) ja documenta
+  /backlinks, /links, /orphans-in. Ajustei as linhas de `/related` e `/suggest` para
+  refletir o flag `cached` adicionado no S19 (agora retornam `cached:true` em hit),
+  mostrando o contrato exato de JSON (`related`/`suggestions` + `cached`). Mantem o
+  documento derivado-do-codigo (nao de memoria) — alinhado ao P13.
+- NOTA de escopo: `10_MEGA_BRAIN/PROMPT_MESTRE_v2.md` (M), `docs/sprints/sprint-18.md`
+  (??), `tests/e2e_api_contract.py` (??) e os `50_METRICS/*.md` foram modificados/criados
+  POR OUTROS WORKERS ou pelo sistema, NAO por mim. Deixei todos FORA deste commit para
+  nao misturar autoria; pertencem ao esforco conjunto e serao comitados por quem os criou.
+  Meu commit restringe-se a: S17(backlinks) ja pushado, S19(semantic cache) ja pushado,
+  S20(/links API+tests+dashboard+FCS) ja pushado, e este ajuste de doc.
