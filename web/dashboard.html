@@ -6,7 +6,19 @@
   <title>MEGA BRAIN — Dashboard de Conhecimento</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.css" />
   <style>
-    body { background: #0e1116; color: #e6e6e6; }
+    :root {
+      --bg: #0e1116;
+      --card-1: #1b2433;
+      --card-2: #243043;
+      --txt: #ffffff;
+      --muted: #9aa7b5;
+      --accent: #3b82f6;
+      --accent-2: #7c3aed;
+      --ok: #22c55e;
+      --nok: #ef4444;
+    }
+    body { background: var(--bg); color: var(--txt); }
+    h1.ui.header, h3.ui.header { color: #fff !important; }
     #graph { height: 60vh; border: 1px solid #2b3340; border-radius: 8px; background: #11161d; }
     .node { stroke: #3b82f6; fill: #1e293b; }
     .node.moc { fill: #7c3aed; }
@@ -14,8 +26,39 @@
     .node.daily { fill: #d97706; }
     .node.system { fill: #475569; }
     .edge { stroke: #334155; stroke-opacity: 0.5; }
-    .stat { font-size: 1.6em; font-weight: 700; }
-    pre.metrics { background: #11161d; border: 1px solid #2b3340; padding: 1em; max-height: 240px; overflow: auto; }
+
+    /* Card de estatistica: gradiente suave + efeito raised */
+    .stat-card {
+      background: linear-gradient(160deg, var(--card-1) 0%, var(--card-2) 100%);
+      border: 1px solid #2f3c52;
+      border-radius: 12px;
+      padding: 1.2em 1em;
+      text-align: center;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+      color: #fff;
+    }
+    .stat-card .value { font-size: 2.2em; font-weight: 800; color: #fff; line-height: 1.1; }
+    .stat-card .label { margin-top: 0.35em; font-size: 0.85em; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+    .stat-card.is-ok .value { color: var(--ok); }
+    .stat-card.is-nok .value { color: var(--nok); }
+
+    pre.metrics { background: #11161d; border: 1px solid #2b3340; padding: 1em; max-height: 240px; overflow: auto; color: #cbd5e1; }
+
+    /* Painel de teste de conexao */
+    #connPanel {
+      background: linear-gradient(160deg, #14202e 0%, #1d2a3d 100%);
+      border: 1px solid #2f3c52; border-radius: 12px; padding: 1em 1.1em; margin-top: 1.2em;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+      color: #fff;
+    }
+    #connPanel h4 { color: #fff !important; margin-bottom: 0.6em; }
+    #connPanel table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+    #connPanel td { padding: 0.25em 0.4em; border-bottom: 1px solid #243043; color: #dbe4f0; }
+    #connPanel td.k { color: var(--muted); }
+    #connPanel td.v { text-align: right; font-weight: 700; color: #fff; }
+    #connLog { margin-top: 0.7em; font-size: 0.8em; color: var(--muted); max-height: 120px; overflow: auto; }
+    .ui.button.test-conn { background: linear-gradient(160deg, var(--accent) 0%, var(--accent-2) 100%); color: #fff; font-weight: 700; }
+    .ui.button.test-conn:hover { filter: brightness(1.08); }
   </style>
 </head>
 <body>
@@ -25,11 +68,23 @@
       <div class="sub header">Dashboard de Conhecimento &amp; Saúde do MCP</div>
     </h1>
 
-    <div class="ui four small statistics">
-      <div class="statistic"><div class="value" id="stat-nodes">–</div><div class="label">Nós</div></div>
-      <div class="statistic"><div class="value" id="stat-edges">–</div><div class="label">Arestas</div></div>
-      <div class="statistic"><div class="value" id="stat-req">–</div><div class="label">Requisições</div></div>
-      <div class="statistic"><div class="value" id="stat-health">–</div><div class="label">Saúde</div></div>
+    <div class="ui four small statistics" style="margin-bottom: 0;">
+      <div class="stat-card">
+        <div class="value" id="stat-nodes">–</div>
+        <div class="label">Nós</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="stat-edges">–</div>
+        <div class="label">Arestas</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="stat-req">–</div>
+        <div class="label">Requisições</div>
+      </div>
+      <div class="stat-card" id="card-health">
+        <div class="value" id="stat-health">–</div>
+        <div class="label">Saúde</div>
+      </div>
     </div>
 
     <div class="ui grid" style="margin-top: 1.5em;">
@@ -44,6 +99,24 @@
           <button class="ui button primary" id="searchBtn">Buscar</button>
         </div>
         <div id="results" class="ui relaxed list" style="margin-top: 1em;"></div>
+
+        <!-- Teste de saude da conexao -->
+        <div id="connPanel">
+          <h4 class="ui header"><i class="signal icon"></i> Teste de Saúde da Conexão</h4>
+          <button class="ui button test-conn fluid" id="testConnBtn">
+            <i class="bolt icon"></i> Testar Conexão (ping)
+          </button>
+          <table>
+            <tr><td class="k">Estado</td><td class="v" id="c-state">–</td></tr>
+            <tr><td class="k">Amostras</td><td class="v" id="c-samples">–</td></tr>
+            <tr><td class="k">Ping mín</td><td class="v" id="c-min">–</td></tr>
+            <tr><td class="k">Ping médio</td><td class="v" id="c-avg">–</td></tr>
+            <tr><td class="k">Ping máx</td><td class="v" id="c-max">–</td></tr>
+            <tr><td class="k">Jitter</td><td class="v" id="c-jitter">–</td></tr>
+          </table>
+          <div id="connLog"></div>
+        </div>
+
         <h3 class="ui header inverted" style="margin-top: 1.5em;">Métricas (Prometheus)</h3>
         <pre class="metrics" id="metrics">carregando…</pre>
       </div>
@@ -122,13 +195,57 @@
       try {
         const r = await fetch(`${MCP}/health`);
         const ok = (await r.json()).ok;
+        const card = $('#card-health');
+        card.classList.toggle('is-ok', ok);
+        card.classList.toggle('is-nok', !ok);
         $('#stat-health').textContent = ok ? 'OK' : 'NOK';
         $('#status').textContent = ok ? `Conectado a ${MCP}` : `Sem resposta de ${MCP}`;
-      } catch (e) { $('#stat-health').textContent = 'NOK'; $('#status').textContent = `Erro: ${e}`; }
+      } catch (e) {
+        $('#card-health').classList.add('is-nok');
+        $('#stat-health').textContent = 'NOK';
+        $('#status').textContent = `Erro: ${e}`;
+      }
     }
 
+    // ---- Teste de saude da conexao (mede latencia real de ping ao /health) ----
+    async function testConnection(samples = 10) {
+      const btn = $('#testConnBtn');
+      btn.classList.add('loading', 'disabled');
+      $('#c-state').textContent = 'testando…';
+      $('#c-samples').textContent = '0';
+      $('#connLog').textContent = '';
+      const lat = [];
+      let ok = 0;
+      for (let i = 0; i < samples; i++) {
+        const t0 = performance.now();
+        try {
+          const r = await fetch(`${MCP}/health?_=${Date.now()}`, { cache: 'no-store' });
+          const dt = performance.now() - t0;
+          if (r.ok) { lat.push(dt); ok++; $('#c-samples').textContent = ok; }
+          $('#connLog').textContent = `amostra ${i+1}: ${dt.toFixed(1)} ms (${r.ok ? 'ok' : 'falha'})`;
+        } catch (e) {
+          $('#connLog').textContent = `amostra ${i+1}: ERRO ${e}`;
+        }
+      }
+      btn.classList.remove('loading', 'disabled');
+      if (lat.length === 0) {
+        $('#c-state').textContent = 'FALHA';
+        return;
+      }
+      const min = Math.min(...lat), max = Math.max(...lat);
+      const avg = lat.reduce((a,b)=>a+b,0) / lat.length;
+      // jitter = desvio medio absoluto em relacao a media
+      const jitter = lat.reduce((a,b)=>a+Math.abs(b-avg),0) / lat.length;
+      $('#c-state').textContent = `OK (${ok}/${samples})`;
+      $('#c-min').textContent = `${min.toFixed(1)} ms`;
+      $('#c-avg').textContent = `${avg.toFixed(1)} ms`;
+      $('#c-max').textContent = `${max.toFixed(1)} ms`;
+      $('#c-jitter').textContent = `${jitter.toFixed(1)} ms`;
+    }
+    $('#testConnBtn').addEventListener('click', () => testConnection(10));
+
     $('#searchBtn').addEventListener('click', search);
-    health(); loadGraph(); loadMetrics();
+    health(); loadGraph(); loadMetrics(); testConnection(5);
     setInterval(() => { health(); loadMetrics(); }, 15000);
   </script>
 </body>
