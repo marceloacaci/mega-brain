@@ -12,8 +12,29 @@ import sys
 import time
 from config import load_config
 
+# S25: importa prune_vault_dirs/VAULT_SKIP_DIRS de 80_SYSTEM/SCRIPTS (mesma
+# centralizacao do S24) para que o watcher NAO trate tests/.git/node_modules/
+# __pycache__ como notas de conteudo (o repo MEGA BRAIN E o vault). Fail-safe:
+# se nao conseguir importar, usa no-op/set vazio e continua funcionando.
+_SCRIPTS = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "SCRIPTS"))
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
+try:
+    from constants import prune_vault_dirs, VAULT_SKIP_DIRS  # noqa: E402
+except Exception:
+    def prune_vault_dirs(dirs):
+        pass
+    VAULT_SKIP_DIRS = set()
+
 _CFG = load_config()
 _VAULT = _CFG.get("vault_path", "")
+
+
+def _is_skip_path(path):
+    """True se `path` esta numa pasta nao-conteudo (tests/.git/node_modules/...)."""
+    rel = path.replace("\\", "/")
+    parts = rel.split("/")
+    return any(p in VAULT_SKIP_DIRS for p in parts)
 # Debounce: ignora eventos repetidos da mesma nota numa janela de 2s.
 _DEBOUNCE_MS = int(_CFG.get("watcher_debounce_ms", 2000))
 _LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "LOGS", "watcher.log")
@@ -44,6 +65,10 @@ def _debounced(path):
 
 def handle(path):
     if not path.endswith(".md"):
+        return
+    # S25: ignora notas em pastas nao-conteudo (tests/.git/node_modules/...) —
+    # o repo MEGA BRAIN tambem e o vault, e esses dirs mudam muito (CI, cache).
+    if _is_skip_path(path):
         return
     if not _debounced(path):
         return
@@ -86,7 +111,8 @@ except ImportError:
     def run(seconds=0):
         log(f"watcher ativo (polling) em {_VAULT}")
         seen = {}
-        for root, _, files in os.walk(_VAULT):
+        for root, dirs, files in os.walk(_VAULT):
+            prune_vault_dirs(dirs)
             if ".obsidian" in root:
                 continue
             for fn in files:
@@ -99,7 +125,8 @@ except ImportError:
         deadline = time.time() + seconds if seconds > 0 else 0
         try:
             while True:
-                for root, _, files in os.walk(_VAULT):
+                for root, dirs, files in os.walk(_VAULT):
+                    prune_vault_dirs(dirs)
                     if ".obsidian" in root:
                         continue
                     for fn in files:

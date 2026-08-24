@@ -54,6 +54,17 @@ def main():
     after2 = os.path.getsize(w._LOG) if os.path.exists(w._LOG) else 0
     results.append(("different_note_processed", after2 > after))
 
+    # 3b. S25: nota em pasta nao-conteudo (tests/.git/node_modules/...) e IGNORADA.
+    # Prova anti-regressao: reverter o handle() p/ nao checar _is_skip_path faz
+    # esses paths aparecerem no log (falha). Sem isso, o watcher reindexaria a
+    # cada mudanca de CI/cache (o repo MEGA BRAIN tambem e o vault).
+    before_skip = os.path.getsize(w._LOG) if os.path.exists(w._LOG) else 0
+    w.handle("C:/fake/tests/foo.md")
+    w.handle("C:/fake/node_modules/pkg/bar.md")
+    w.handle("C:/fake/.git/HEAD.md")
+    after_skip = os.path.getsize(w._LOG) if os.path.exists(w._LOG) else 0
+    results.append(("skip_dirs_not_logged", before_skip == after_skip))
+
     # 4. Apos > 2s a mesma nota processa de novo
     time.sleep(2.1)
     w.handle("C:/fake/10_MEGA_BRAIN/NOTA.md")

@@ -44,19 +44,26 @@ def _agent_indexer(vault, query):
 
 
 def _agent_correlator(vault, query):
-    """Sugere notas relacionadas à query (fallback Jaccard se sem Ollama)."""
+    """Sugere notas relacionadas à query (fallback Jaccard se sem Ollama).
+
+    S25-B: usa suggest_cached (mesmo contrato de suggest, mas memoiza por
+    mtime/TTL do vault — evita re-varredura do vault a cada /swarm).
+    """
     try:
-        from semantic import suggest
-        return {"suggestions": suggest(vault, query, k=5)}
+        from semantic import suggest_cached
+        return {"suggestions": suggest_cached(vault, query, k=5)}
     except Exception:
         return {"suggestions": []}
 
 
 def _agent_guardian(vault, query):
-    """Valida integridade do vault (links quebrados, estrutura)."""
+    """Valida integridade do vault (links quebrados, estrutura).
+
+    S25-B: usa validate_cached (mesmo contrato de validate, memoizado).
+    """
     try:
-        from validate_vault import validate
-        rep = validate(vault)
+        from validate_vault import validate_cached
+        rep = validate_cached(vault)
         return {"ok": rep.get("ok", False), "problemas": len(rep.get("problemas", []))}
     except Exception:
         return {"ok": True, "problemas": 0}
