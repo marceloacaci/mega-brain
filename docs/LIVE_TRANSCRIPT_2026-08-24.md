@@ -606,3 +606,31 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
   ou painel /links no dashboard com FCS.
 - Regras respeitadas: nenhum processo/servidor morto; backup previo intacto; push autorizado.
 \n## Worker 6 — Sprint 17-C: clique no no' do grafo carrega Backlinks + Links de saida\n\n- Antes: clicar num no' do grafo so' ativava o Modo Foco. Os paineis Backlinks (S17) e\n  Links de Saida (S20, do worker irmao) exigiam DIGITAR o caminho da nota a' mao.\n- Agora: um unico clique dispara `focusNode(n.id)` + `loadBacklinks(n.id)` +\n  `loadLinks(n.id)`. Insight: o `n.id` do `/graph` JA E' o caminho relativo que\n  `/backlinks` e `/links` esperam em `?path=` — nao precisou de mapeamento.\n- Guardas `typeof loadX === 'function'`: se um painel nao existir na versao carregada, o\n  clique NAO quebra o grafo. Isso se provou util no proprio FCS (a aba aberta era anterior\n  ao patch, `loadLinks` nao existia, e o clique seguiu funcionando sem excecao).\n- Texto do cabecalho atualizado: "clique num no = Modo Foco + Backlinks/Links".\n\n### `node --check` PEGOU UM BUG REAL DE OUTRO WORKER (valor concreto do P10/P13)\nAo validar o JS inline, `node --check` retornou **rc=1**:\n`SyntaxError: Invalid or unexpected token` na linha do painel `/links` —\n`` `onclick=\\"loadBacklinks('${x.note.replace(/'/g, \\"\\\\\\\\'\\")}')\\"` `` (escape de\nbackslash duplicado a mais). Esse erro **quebraria TODO o JS do dashboard** (um unico\n`<script>` inline) e NAO seria pego por `run_all` nem pelo CI (P13). O worker irmao\ncorrigiu em seguida; re-checado -> rc=0. Reforca: SEMPRE rodar `node --check` do bloco\ninline extraido, a partir do ROOT do repo, apos qualquer mexida no dashboard.\n\n### Verificacao de fato (FCS, MCP fixture 8907)\n- `/orphans-in`, `/backlinks?path=...` e `/links?path=...` respondendo no fixture.\n- Clique no no' **MOC**: Backlinks -> "nenhum backlink para MOC (nota orfa de entrada)";\n  Links de Saida -> "MOC aponta para 2 nota(s): B 2x, A 1x"; 1 no' `.dim` (foco ativo);\n  ambos os inputs preenchidos com `70_MOCS/MOC.md`.\n- Clique no no' **B**: Backlinks -> "2 nota(s) apontam para B (MOC 2x, A 1x)";\n  Links de Saida -> "B nao aponta para nenhuma nota" — coerente nas DUAS direcoes.\n- `node --check` rc=0; tamanho no disco 33690 bytes, tail intacto (P14).\n- `python tests/run_all.py`: **31/31 suites verdes**.\n- Commit `7031c3a` pushado.\n\n### Notas de coordenacao (trabalho em paralelo com worker irmao)\n- Meu patch em `web/dashboard.html` foi SOBRESCRITO uma vez pelo rewrite do irmao; detectei\n  com `grep` do marcador `S17-C` e reapliquei sobre a versao nova dele. Ao trabalhar em\n  paralelo no MESMO arquivo, sempre re-verifique se sua edicao sobreviveu antes do commit.\n- Meu fix do `import threading` em `semantic.py` acabou incorporado no commit do irmao\n  (`a8cd6f8`) — nao houve perda.\n- Nenhum processo/servidor foi morto em nenhuma etapa.\n
+
+## Worker continuation (2026-08-24) — S20: painel /links no dashboard + FCS no browser
+
+- Adicionado ao `web/dashboard.html` (ARQUIVO UNICO inline — P12) o painel
+  "Links de Saida (para onde a nota aponta)" com input/Ver/Enter + renderizacao
+  de cada alvo (resolvido = azul clicavel com drill-down `loadBacklinks`, quebrado
+  = vermelho `[quebrado]`). JS `loadLinks(p)` consome `/links` (contrato: `links`,
+  `resolved`, `note`, `title`, `count` — P13). Estilo via aspas duplas CORRETAS
+  (`\"`, sem o duplo-escape `\\\"` que corrompeu a tentativa anterior).
+- Verificacao de fato (FCS, P10/P11/P13): subi MCP (porta fresca, vault fixture
+  temp: 4 notas, 1 orfa) + `python -m http.server --bind 127.0.0.1` em porta
+  fresca, abri `dashboard.html?mcp=http://localhost:<porta>`.
+  - `node --check` do `<script>` inline extraido (a partir do ROOT) -> rc=0.
+  - `browser_console`: `await loadLinks('10_MEGA_BRAIN/A.md')` -> "A aponta para
+    2 nota(s)" (B e C, codigo ignorado), drill-down `onclick="loadBacklinks(...)"`
+    com `&quot;` (escapado OK). `loadLinks('10_MEGA_BRAIN/Orfa.md')` -> "nao
+    aponta para nenhuma nota". `loadBacklinks('10_MEGA_BRAIN/B.md')` tambem OK.
+  - 1 JS error vazio = iframe Grafana (localhost:3000 ausente), benigno e
+    pre-existente (P13/pitfalls); nenhum erro em `loadLinks`/`loadBacklinks`.
+  - Confiro tamanho real no disco (36596 bytes) e tail (`</body></html>`), sem
+    versao stale (P14).
+- `python tests/run_all.py`: **31/31 suites verdes**, estavel em multiplas execucoes.
+- Encerrei os servidores de teste que EU subi (FCS); nao matei nenhum processo do
+  usuario (regra respeitada). Removi `fcs_launcher.py`/`fcs_ports.json` do repo.
+- NOTA: `10_MEGA_BRAIN/PROMPT_MESTRE_v2.md` (M) e `docs/api-reference.md` (??) e
+  `docs/sprints/sprint-18.md` (??) apareceram MODIFICADOS/NOVOS sem eu toca-los
+  (provavelmente outros workers/sistema) — DEIXEI FORA do commit para nao misturar
+  escopo. Se pertencerem ao esforco conjunto, comitar a parte separada.
