@@ -7,7 +7,9 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.css" />
   <style>
     :root {
+      /* TEMA ESCURO (padrão) */
       --bg: #0e1116;
+      --panel: #11161d;
       --card-1: #1b2433;
       --card-2: #243043;
       --txt: #ffffff;
@@ -16,59 +18,125 @@
       --accent-2: #7c3aed;
       --ok: #22c55e;
       --nok: #ef4444;
+      --border: #2f3c52;
+      --glow: rgba(255,255,255,0.18);
+      --graph-bg: #11161d;
+      --graph-border: #2b3340;
+      --node-stroke: #3b82f6;
+      --node-base: #1e293b;
+      --node-text: #9aa7b5;
+      --edge: #334155;
+      --hover-bg: #1b2433;
+      --hover-border: #3b82f6;
     }
-    body { background: var(--bg); color: var(--txt); }
-    h1.ui.header, h3.ui.header { color: #fff !important; }
-    #graph { height: 60vh; border: 1px solid #2b3340; border-radius: 8px; background: #11161d; }
-    .node { stroke: #3b82f6; fill: #1e293b; }
+    html[data-theme="light"] {
+      /* TEMA CLARO */
+      --bg: #eef2f7;
+      --panel: #ffffff;
+      --card-1: #ffffff;
+      --card-2: #e8eef7;
+      --txt: #0f172a;
+      --muted: #5b6b7d;
+      --accent: #2563eb;
+      --accent-2: #7c3aed;
+      --ok: #16a34a;
+      --nok: #dc2626;
+      --border: #cdd8e6;
+      --glow: rgba(37,99,235,0.25);
+      --graph-bg: #f7fafc;
+      --graph-border: #cdd8e6;
+      --node-stroke: #2563eb;
+      --node-base: #dbeafe;
+      --node-text: #334155;
+      --edge: #aebfd2;
+      --hover-bg: #ffffff;
+      --hover-border: #2563eb;
+    }
+
+    * { box-sizing: border-box; }
+    body { background: var(--bg); color: var(--txt); transition: background .3s, color .3s; }
+    h1.ui.header, h3.ui.header { color: var(--txt) !important; }
+    #graph { height: 60vh; border: 1px solid var(--graph-border); border-radius: 8px; background: var(--graph-bg); transition: background .3s, border-color .3s; }
+    .node { stroke: var(--node-stroke); fill: var(--node-base); cursor: pointer; transition: fill .2s; }
+    .node:hover { fill: var(--accent); }
     .node.moc { fill: #7c3aed; }
     .node.project { fill: #059669; }
     .node.daily { fill: #d97706; }
-    .node.system { fill: #475569; }
-    .edge { stroke: #334155; stroke-opacity: 0.5; }
+    .node.system { fill: #64748b; }
+    .edge { stroke: var(--edge); stroke-opacity: 0.5; }
 
-    /* Card de estatistica: gradiente suave + efeito raised */
-    .stat-card {
-      background: linear-gradient(160deg, var(--card-1) 0%, var(--card-2) 100%);
-      border: 1px solid #2f3c52;
-      border-radius: 12px;
-      padding: 1.2em 1em;
-      text-align: center;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
-      color: #fff;
+    /* Barra de topo com titulo + toggle de tema */
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5em; }
+    .topbar .title { display: flex; align-items: center; gap: 0.6em; }
+    .topbar h1 { margin: 0; }
+    .ui.button.theme-toggle { background: linear-gradient(160deg, var(--accent) 0%, var(--accent-2) 100%); color: #fff; font-weight: 700; }
+
+    /* LINHA DE CARDS: espacamento + centralizacao */
+    .stat-row {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 1.4em;
+      margin: 0 auto 0.5em;
     }
-    .stat-card .value { font-size: 2.2em; font-weight: 800; color: #fff; line-height: 1.1; }
+    .stat-card {
+      flex: 1 1 180px; max-width: 240px;
+      background: linear-gradient(160deg, var(--card-1) 0%, var(--card-2) 100%);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.4em 1em;
+      text-align: center;
+      /* sombra branca (glow) + profundidade */
+      box-shadow: 0 6px 18px var(--glow), 0 8px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.10);
+      color: var(--txt);
+      transition: transform .15s, box-shadow .2s, background .3s, color .3s;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 26px var(--glow), 0 12px 30px rgba(0,0,0,0.4); }
+    .stat-card .value { font-size: 2.2em; font-weight: 800; color: var(--txt); line-height: 1.1; }
     .stat-card .label { margin-top: 0.35em; font-size: 0.85em; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
     .stat-card.is-ok .value { color: var(--ok); }
     .stat-card.is-nok .value { color: var(--nok); }
 
-    pre.metrics { background: #11161d; border: 1px solid #2b3340; padding: 1em; max-height: 240px; overflow: auto; color: #cbd5e1; }
+    pre.metrics { background: var(--panel); border: 1px solid var(--border); padding: 1em; max-height: 240px; overflow: auto; color: var(--muted); transition: background .3s, border-color .3s; }
 
-    /* Painel de teste de conexao */
     #connPanel {
-      background: linear-gradient(160deg, #14202e 0%, #1d2a3d 100%);
-      border: 1px solid #2f3c52; border-radius: 12px; padding: 1em 1.1em; margin-top: 1.2em;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
-      color: #fff;
+      background: linear-gradient(160deg, var(--card-1) 0%, var(--card-2) 100%);
+      border: 1px solid var(--border); border-radius: 12px; padding: 1em 1.1em; margin-top: 1.2em;
+      box-shadow: 0 6px 18px var(--glow), 0 8px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.10);
+      color: var(--txt); transition: background .3s, color .3s;
     }
-    #connPanel h4 { color: #fff !important; margin-bottom: 0.6em; }
+    #connPanel h4 { color: var(--txt) !important; margin-bottom: 0.6em; }
     #connPanel table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-    #connPanel td { padding: 0.25em 0.4em; border-bottom: 1px solid #243043; color: #dbe4f0; }
+    #connPanel td { padding: 0.25em 0.4em; border-bottom: 1px solid var(--border); color: var(--txt); }
     #connPanel td.k { color: var(--muted); }
-    #connPanel td.v { text-align: right; font-weight: 700; color: #fff; }
+    #connPanel td.v { text-align: right; font-weight: 700; color: var(--txt); }
     #connLog { margin-top: 0.7em; font-size: 0.8em; color: var(--muted); max-height: 120px; overflow: auto; }
     .ui.button.test-conn { background: linear-gradient(160deg, var(--accent) 0%, var(--accent-2) 100%); color: #fff; font-weight: 700; }
     .ui.button.test-conn:hover { filter: brightness(1.08); }
+
+    /* Card de hover do no (metadados) */
+    #nodeTip {
+      position: fixed; pointer-events: none; z-index: 50; max-width: 280px;
+      background: var(--hover-bg); border: 1px solid var(--hover-border); border-radius: 10px;
+      padding: 0.7em 0.9em; box-shadow: 0 8px 24px rgba(0,0,0,0.5); color: var(--txt);
+      font-size: 0.82em; display: none; transition: background .3s, color .3s;
+    }
+    #nodeTip h5 { margin: 0 0 0.3em; font-size: 1em; color: var(--txt); }
+    #nodeTip .meta { color: var(--muted); margin: 0.1em 0; }
+    #nodeTip .tag { display: inline-block; background: var(--accent); color: #fff; border-radius: 4px; padding: 0 0.4em; margin: 0.1em 0.2em 0 0; font-size: 0.85em; }
   </style>
 </head>
 <body>
   <div class="ui container" style="padding: 2em 0;">
-    <h1 class="ui header inverted">
-      <i class="brain icon"></i> MEGA BRAIN
-      <div class="sub header">Dashboard de Conhecimento &amp; Saúde do MCP</div>
-    </h1>
+    <div class="topbar">
+      <div class="title">
+        <h1 class="ui header inverted">
+          <i class="brain icon"></i> MEGA BRAIN
+          <div class="sub header">Dashboard de Conhecimento &amp; Saúde do MCP</div>
+        </h1>
+      </div>
+      <button class="ui button theme-toggle" id="themeBtn"><i class="adjust icon"></i> Tema</button>
+    </div>
 
-    <div class="ui four small statistics" style="margin-bottom: 0;">
+    <!-- LINHA DE CARDS (centralizados + espacados) -->
+    <div class="stat-row">
       <div class="stat-card">
         <div class="value" id="stat-nodes">–</div>
         <div class="label">Nós</div>
@@ -124,17 +192,44 @@
     <div class="ui tiny message" id="status"></div>
   </div>
 
+  <!-- Card de hover do no -->
+  <div id="nodeTip"></div>
+
   <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.js"></script>
   <script>
     const MCP = (new URLSearchParams(location.search).get('mcp')) || 'http://localhost:8770';
     const $ = (s) => document.querySelector(s);
 
+    // ---------- Tema claro/escuro (persiste em localStorage) ----------
+    function applyTheme(t) {
+      document.documentElement.setAttribute('data-theme', t);
+      try { localStorage.setItem('mb_theme', t); } catch (e) {}
+    }
+    (function initTheme() {
+      let t = 'dark';
+      try { t = localStorage.getItem('mb_theme') || 'dark'; } catch (e) {}
+      applyTheme(t);
+    })();
+    $('#themeBtn').addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+      applyTheme(cur === 'dark' ? 'light' : 'dark');
+    });
+
+    // ---------- Grafo + card de hover (metadados do no) ----------
+    let GRAPH = null;
     async function loadGraph() {
       const r = await fetch(`${MCP}/graph?k=3`);
       const g = await r.json();
+      GRAPH = g;
       $('#stat-nodes').textContent = g.nodes.length;
       $('#stat-edges').textContent = g.edges.length;
       drawGraph(g);
+    }
+
+    function nodeMeta(node) {
+      // metadados derivados do grafo (grau, tipo, arestas)
+      const degree = (GRAPH ? GRAPH.edges.filter(e => e.source === node.id || e.target === node.id).length : 0);
+      return { degree };
     }
 
     function drawGraph(g) {
@@ -163,13 +258,39 @@
         const c = document.createElementNS(ns, 'circle');
         c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 6);
         c.setAttribute('class', 'node ' + (n.type || 'note'));
+        c.dataset.id = n.id;
         const t = document.createElementNS(ns, 'text');
         t.setAttribute('x', x+9); t.setAttribute('y', y+4);
-        t.setAttribute('fill', '#9aa7b5'); t.setAttribute('font-size', '10');
-        t.textContent = n.label.slice(0, 22);
+        t.setAttribute('fill', 'var(--node-text)'); t.setAttribute('font-size', '10');
+        t.textContent = (n.label || n.id).slice(0, 22);
         svg.appendChild(c); svg.appendChild(t);
+
+        // hover -> card de metadados
+        c.addEventListener('mouseenter', (ev) => showTip(ev, n));
+        c.addEventListener('mousemove', (ev) => moveTip(ev));
+        c.addEventListener('mouseleave', hideTip);
       });
     }
+
+    const tip = $('#nodeTip');
+    function showTip(ev, n) {
+      const m = nodeMeta(n);
+      tip.innerHTML = `<h5>${n.label || n.id}</h5>` +
+        `<div class="meta">Tipo: <b>${n.type || 'note'}</b></div>` +
+        `<div class="meta">Caminho: ${n.id}</div>` +
+        `<div class="meta">Conexões (grau): ${m.degree}</div>`;
+      tip.style.display = 'block';
+      moveTip(ev);
+    }
+    function moveTip(ev) {
+      const pad = 14;
+      let x = ev.clientX + pad, y = ev.clientY + pad;
+      const r = tip.getBoundingClientRect();
+      if (x + r.width > window.innerWidth) x = ev.clientX - r.width - pad;
+      if (y + r.height > window.innerHeight) y = ev.clientY - r.height - pad;
+      tip.style.left = x + 'px'; tip.style.top = y + 'px';
+    }
+    function hideTip() { tip.style.display = 'none'; }
 
     async function search() {
       const q = $('#q').value.trim();
@@ -228,13 +349,9 @@
         }
       }
       btn.classList.remove('loading', 'disabled');
-      if (lat.length === 0) {
-        $('#c-state').textContent = 'FALHA';
-        return;
-      }
+      if (lat.length === 0) { $('#c-state').textContent = 'FALHA'; return; }
       const min = Math.min(...lat), max = Math.max(...lat);
       const avg = lat.reduce((a,b)=>a+b,0) / lat.length;
-      // jitter = desvio medio absoluto em relacao a media
       const jitter = lat.reduce((a,b)=>a+Math.abs(b-avg),0) / lat.length;
       $('#c-state').textContent = `OK (${ok}/${samples})`;
       $('#c-min').textContent = `${min.toFixed(1)} ms`;
