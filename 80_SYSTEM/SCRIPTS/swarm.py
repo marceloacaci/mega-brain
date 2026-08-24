@@ -24,14 +24,31 @@ _PARA = ["00_INBOX", "10_MEGA_BRAIN", "20_DAILY_NOTES", "30_PROJECTS",
          "40_AREAS", "50_METRICS", "60_RESOURCES", "70_MOCS", "80_SYSTEM", "90_ARCHIVE"]
 
 
-def _agent_indexer(vault, query):
-    """Lista as pastas PARA presentes e total de notas .md."""
-    present = [p for p in _PARA if os.path.isdir(os.path.join(vault, p))]
+def _count_md(vault):
+    """Uma unica varredura: (total_md, {pasta_raiz: n}).
+
+    Reduz duplicacao: _agent_indexer e _agent_metric faziam CADA um o seu
+    proprio os.walk do vault inteiro (2 varreduras por run_swarm).
+    """
     total = 0
+    by_dir = {}
     for root, _, files in os.walk(vault):
         if ".obsidian" in root:
             continue
-        total += sum(1 for f in files if f.endswith(".md"))
+        md = [f for f in files if f.endswith(".md")]
+        if not md:
+            continue
+        rel = os.path.relpath(root, vault).replace("\\", "/")
+        top = rel.split("/")[0] if rel != "." else "(raiz)"
+        by_dir[top] = by_dir.get(top, 0) + len(md)
+        total += len(md)
+    return total, by_dir
+
+
+def _agent_indexer(vault, query):
+    """Lista as pastas PARA presentes e total de notas .md."""
+    present = [p for p in _PARA if os.path.isdir(os.path.join(vault, p))]
+    total, _by = _count_md(vault)
     return {"present_folders": present, "total_notes": total}
 
 
@@ -70,15 +87,7 @@ def _agent_predictive(vault, query):
 
 def _agent_metric(vault, query):
     """Contagem de notas por pasta-raiz (métrica de cobertura)."""
-    by_dir = {}
-    for root, _, files in os.walk(vault):
-        if ".obsidian" in root:
-            continue
-        rel = os.path.relpath(root, vault).replace("\\", "/")
-        md = [f for f in files if f.endswith(".md")]
-        if md:
-            top = rel.split("/")[0] if rel != "." else "(raiz)"
-            by_dir[top] = by_dir.get(top, 0) + len(md)
+    _total, by_dir = _count_md(vault)
     return {"by_dir": by_dir}
 
 

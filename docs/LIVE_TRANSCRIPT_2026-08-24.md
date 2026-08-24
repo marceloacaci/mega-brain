@@ -145,3 +145,21 @@
   positivo / codigo ignorado / template ignorado / link inexistente AINDA reportado /
   dedupe 1x / total_notas correto.
 - `tests/run_all.py` -> **12/12 verdes**.
+
+## Iteracao 101-112 — VERIFICACAO CANONICA CI + reducao de duplicacao no swarm
+
+- VERIFICACAO CANONICA (Principio 2 do skill), run `32688009570` (commit 99004bf):
+  `gh run view --json jobs` -> **status=completed / conclusion=success**, TODOS os 5 jobs:
+  * Testes (smoke MCP + debounce watcher) | success
+  * Lint (PowerShell + Python)           | success
+  * Testes E2E (hooks PowerShell)        | success
+  * SAST (bandit + secret-scan)          | success
+  * Build Docker image (multi-stage)     | success
+  Ou seja: o fix de path traversal, a otimizacao do grafo e o fix do validate
+  estao verdes no CI de verdade, nao apenas localmente.
+- REDUCAO DE DUPLICACAO em `swarm.py`: `_agent_indexer` e `_agent_metric` faziam
+  CADA UM o seu proprio `os.walk` do vault inteiro (2 varreduras por `run_swarm`).
+  Extraido helper `_count_md(vault)` -> devolve `(total, by_dir)` numa unica passada.
+- EQUIVALENCIA PROVADA: `total_notes` = 188 antes e depois; `sum(by_dir.values())`
+  = 188 (consistente); nenhum agente com 'error'. Comportamento identico.
+- `python tests/run_all.py` -> **12/12 verdes**.
