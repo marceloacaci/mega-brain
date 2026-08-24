@@ -11,6 +11,8 @@ Retorna dict {ok, problemas:[...], total_notas}.
 """
 import os
 import re
+import time
+import threading
 
 # Pastas que devem existir
 REQUIRED_DIRS = ["10_MEGA_BRAIN", "70_MOCS", "80_SYSTEM"]
@@ -104,6 +106,60 @@ def validate(vault):
                                  "msg": f"[[{m}]] aponta para nota inexistente"})
 
     return {"ok": len(problems) == 0, "total_notas": total, "problemas": problems}
+
+
+# ---------------------------------------------------------------------------
+# Cache thread-safe (P11-style) para /validate: evita re-varrer o vault a cada
+# poll do dashboard. Invalidado por assinatura de mtime do vault OU TTL.
+# Segue o padrao exato de recent.recent_notes_cached / tags.tag_counts_cached.
+# ---------------------------------------------------------------------------
+_VALIDATE_CACHE = {"key": None, "mtime": 0.0, "data": None, "built_at": 0.0}
+_VALIDATE_LOCK = threading.Lock()
+_VALIDATE_DEFAULT_TTL = 60.0
+
+
+def _vault_mtime_signature(vault):
+    """Retorna (mtime_max, contagem) das notas .md — usado p/ invalidar cache."""
+    newest = 0.0
+    count = 0
+    for root, _, files in os.walk(vault):
+        if any(ig in root for ig in IGNORE):
+            continue
+        for f in files:
+            if not f.endswith(".md"):
+                continue
+            try:
+                m = os.path.getmtime(os.path.join(root, f))
+            except OSError:
+                continue
+            if m > newest:
+                newest = m
+            count += 1
+    return newest, count
+
+
+def validate_cached(vault, ttl=_VALIDATE_DEFAULT_TTL):
+    """Versao cacheada de validate (invalida por mtime do vault ou TTL).
+
+    Retorna (dict, foi_cacheado). Thread-safe. Semantica idêntica a validate()
+    quando há miss. A chave é fixa (validate nao recebe params); o cache e
+    invalidado por mtime/count do vault, nao por parametro.
+    """
+    with _VALIDATE_LOCK:
+        cached = _VALIDATE_CACHE
+        if cached["data"] is not None:
+            sig = _vault_mtime_signature(vault)
+            if sig[0] == cached["mtime"] and (time.time() - cached["built_at"]) < ttl:
+                return cached["data"], True
+    data = validate(vault)
+    mtime, _ = _vault_mtime_signature(vault)
+    with _VALIDATE_LOCK:
+        _VALIDATE_CACHE["key"] = "v1"
+        _VALIDATE_CACHE["mtime"] = mtime
+        _VALIDATE_CACHE["data"] = data
+        _VALIDATE_CACHE["built_at"] = time.time()
+    return data, False
+
 
 
 if __name__ == "__main__":

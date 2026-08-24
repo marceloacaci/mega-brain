@@ -50,6 +50,7 @@ sys_path = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 if sys_path not in sys.path:
     sys.path.insert(0, sys_path)
 import validate_vault  # noqa: E402
+from validate_vault import validate_cached  # noqa: E402
 from vault_stats import count_by_dir  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -225,7 +226,10 @@ def tag(note, tags):
                 if t not in head:
                     head = head.rstrip() + f"\n  - {t}\n"
         else:
-            head = head.rstrip() + f"\ntags: []\n"
+            # frontmatter exists but has NO tags key: inject `tags: [..]` with
+            # the requested tags. Previously this branch created `tags: []` and
+            # silently DROPPED every requested tag (latent defect).
+            head = head.rstrip() + "\ntags: [" + ", ".join(tags) + "]\n"
         content = head + body
     else:
         tags_line = "tags: [" + ", ".join(tags) + "]\n"
@@ -324,10 +328,16 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/metrics":
             return self._send_metrics()
         if u.path == "/validate":
-            rep = validate_vault.validate(VAULT)
-            with _METRICS_LOCK:
-                _METRICS["mcp_requests_total"] += 1
-            return self._send(rep)
+            try:
+                with _METRICS_LOCK:
+                    _METRICS["mcp_requests_total"] += 1
+                # P11-style cache: evita re-varrer o vault a cada poll do dashboard.
+                rep, was_cached = validate_cached(VAULT, ttl=_CACHE_TTL)
+                rep = dict(rep)
+                rep["cached"] = was_cached
+                return self._send(rep)
+            except Exception as e:
+                return self._send({"error": f"validate failed: {e}"}, 500)
         if u.path == "/read":
             p = urllib.parse.parse_qs(u.query).get("path", [""])[0]
             c = read_note(p)

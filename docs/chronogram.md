@@ -147,9 +147,20 @@ v2.1.0 (S10) atingidos em 2026-08-23. Ativação de IA real: `OLLAMA_URL`+`OLLAM
     - **Regressão pega e corrigida antes do commit**: inserção do bloco `/tags` consumiu a guarda
       `if u.path=="/activity":`, deixando `/activity` 404; `e2e_dashboard` (S10-B) falhou → corrigido.
     - FCS: `#tagCloud` renderiza 4 tags na ordem do servidor. Suítes: **23/23 verdes** (era 21/21).
+  - **Sprint 16 — Endurecimento `tag()` + Cache de `/validate`** (DONE, 2026-08-24):
+    - **S16-A — Bugfix latente em `tag()`**: quando a nota TEM frontmatter mas SEM a chave
+      `tags:`, o branch `else` criava `tags: []` e **SILENCIOSAMENTE DROPava todas as tags
+      pedidas** (CI 23/23 verde mascarava o bug). Corrigido: injeta `tags: [pedidas]`.
+      `tests/test_tag_func.py` (9 checagens, não-tautológico: reverter → 3/9 FAIL).
+    - **S16-B — Cache de `/validate`** (padrão P11): `validate_vault.validate_cached(vault, ttl)`
+      com cache thread-safe invalidado por mtime/count do vault ou TTL (igual a `/recent`/`/tags`).
+      Rota `/validate` expõe flag `cached`. `tests/test_validate_cache.py` (6 checagens).
+    - FCS no browser revalidado (ports 8791/8792): `loadGraph` 6n/5e, orfãos 3, BFS, search
+      `data.hits`, activity, tags, validate, conexão OK (5/5). 0 erros runtime reais.
+    - Suítes: **25/25 verdes** (era 23/23). HEAD avança de `5f47538`.
 
 ### Cobertura de testes (inegociavel do `docs/quality.md`)
-- Suíte completa (`tests/run_all.py`): **23/23 suítes verdes**
+- Suíte completa (`tests/run_all.py`): **25/25 suítes verdes**
 - Smoke MCP: **8/8** · Debounce: **4/4** · E2E validação M4: **2/2** · E2E v2.0: **5/5** ·
   E2E Ollama S10-A: **SKIP** (offline) · E2E Dashboard S10-B: **PASS** ·
   E2E Governanca S10-C: **PASS** · E2E Seguranca S11: **5/5** · E2E integração: **3/3** ·
@@ -159,7 +170,8 @@ v2.1.0 (S10) atingidos em 2026-08-23. Ativação de IA real: `OLLAMA_URL`+`OLLAM
   Unidade segurança v2 S12: **7/7** · Unidade dashboard orfãos S12: **4/4** ·
   Unidade teto notas S12: **PASS** · Unidade predictive traversal S12: **PASS** ·
   Unidade modulos compartilhados S13: **PASS** · Unidade notas recentes S14: **16/16** ·
-  Unidade nuvem de tags S15: **10/10**
+  Unidade nuvem de tags S15: **10/10** · Unidade tag() S16: **9/9** ·
+  Unidade cache /validate S16: **6/6**
   - CI: `ci-cd.yml` roda lint + SAST + test-linux (run_all) + test-windows (E2E hooks+backup) + build Docker.
 
 [[gantt]]
