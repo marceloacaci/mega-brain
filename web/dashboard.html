@@ -376,8 +376,15 @@
       try{
         const r=await fetch(`${MCP}/validate`); const v=await r.json();
         const probs=v.problemas||[];
+        // S24: resumo por tipo antes da lista — diz O QUE consertar sem ler 30 linhas.
+        const bt=v.by_tipo||{};
+        const tipos=Object.keys(bt).sort((a,b)=>bt[b]-bt[a]);
+        const resumo=tipos.length?`<div style="margin:0.3em 0;">`+tipos.map(t=>`${t}: <b style="color:var(--nok);">${bt[t]}</b>`).join(' · ')+`</div>`:'';
+        const VLD_CAP=30;
         const html=`<div>Total notas: <b>${v.total_notas||0}</b> · Problemas: <b style="color:${probs.length?'var(--nok)':'var(--ok)'}">${probs.length}</b></div>`+
-          (probs.slice(0,30).map(p=>`<div>• [${p.tipo}] ${p.path||''} — ${p.msg||''}</div>`).join('')||'<div>vault íntegro ✓</div>');
+          resumo+
+          (probs.slice(0,VLD_CAP).map(p=>`<div>• [${p.tipo}] ${p.path||''} — ${p.msg||''}</div>`).join('')||'<div>vault íntegro ✓</div>')+
+          (probs.length>VLD_CAP?`<div style="opacity:.7;">… e mais ${probs.length-VLD_CAP} problema(s)</div>`:'');
         $('#validateOut').innerHTML=html;
       }catch(e){ $('#validateOut').textContent='validate indisponível: '+e; }
     }

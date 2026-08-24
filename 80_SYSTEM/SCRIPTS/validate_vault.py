@@ -105,7 +105,15 @@ def validate(vault):
                 problems.append({"tipo": "link_quebrado", "path": rel,
                                  "msg": f"[[{m}]] aponta para nota inexistente"})
 
-    return {"ok": len(problems) == 0, "total_notas": total, "problemas": problems}
+    # S24: agrega por tipo na MESMA passada. Sem isso o consumidor tem de varrer a lista
+    # inteira para saber "o que esta errado" — e em vault grande a lista crua e' ruido
+    # (mesmo motivo do by_dir em /orphans-in, P26).
+    by_tipo = {}
+    for pr in problems:
+        t = pr.get("tipo", "desconhecido") if isinstance(pr, dict) else "desconhecido"
+        by_tipo[t] = by_tipo.get(t, 0) + 1
+    return {"ok": len(problems) == 0, "total_notas": total,
+            "by_tipo": by_tipo, "problemas": problems}
 
 
 # ---------------------------------------------------------------------------

@@ -73,6 +73,19 @@ def main():
               f"got={by_path.get('10_MEGA_BRAIN/repetido.md')}")
         check("total_notas conta todas as notas", rep["total_notas"] == 6,
               f"got={rep['total_notas']}")
+        # S24: by_tipo agrega os problemas por tipo na mesma passada, para o consumidor
+        # saber O QUE consertar sem varrer a lista inteira (mesmo motivo do by_dir, P26).
+        bt = rep.get("by_tipo")
+        check("validate expoe by_tipo (dict)", isinstance(bt, dict), f"got={type(bt)}")
+        check("soma de by_tipo == len(problemas)",
+              isinstance(bt, dict) and sum(bt.values()) == len(rep["problemas"]),
+              f"got={bt} vs {len(rep['problemas'])}")
+        check("by_tipo contabiliza link_quebrado",
+              isinstance(bt, dict) and bt.get("link_quebrado") == len(broken),
+              f"got={bt.get('link_quebrado') if isinstance(bt, dict) else None}"
+              f" vs {len(broken)}")
+        check("by_tipo nao tem contagem zero",
+              isinstance(bt, dict) and all(v > 0 for v in bt.values()), f"got={bt}")
     finally:
         shutil.rmtree(d, ignore_errors=True)
 

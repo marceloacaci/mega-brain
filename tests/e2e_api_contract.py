@@ -92,7 +92,7 @@ EXPECTED = [
     ("/links?path=10_MEGA_BRAIN/A.md",
      ["path", "title", "total", "links", "cached"]),
     ("/orphans-in", ["total_notas", "total_orfas", "by_dir", "orphans", "cached"]),
-    ("/validate", ["ok", "total_notas", "problemas"]),
+    ("/validate", ["ok", "total_notas", "by_tipo", "problemas"]),
 ]
 
 

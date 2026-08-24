@@ -80,8 +80,11 @@ onde atacar (o dashboard mostra `by_dir` + as 40 primeiras).
 ## Governança & telemetria
 
 ### `GET /validate`
-→ `200 {"ok","total_notas","problemas":[...],"cached"}` — estrutura, frontmatter e
-`[[links]]` quebrados. Ignora exemplos em blocos de código (P16.3).
+→ `200 {"ok","total_notas","by_tipo":{"<tipo>":n},"problemas":[{"tipo","path","msg"}],"cached"}`
+Estrutura, frontmatter e `[[links]]` quebrados. Ignora exemplos em blocos de código (P16.3).
+`by_tipo` agrega os problemas por tipo (`nota_vazia`, `link_quebrado`, …) na mesma passada,
+para o consumidor saber **o que** consertar sem varrer a lista (o dashboard mostra o resumo
++ os 30 primeiros).
 
 ### `GET /metrics`
 → `200` **texto Prometheus** (não JSON): `mcp_requests_total`, `mcp_search_total`,
