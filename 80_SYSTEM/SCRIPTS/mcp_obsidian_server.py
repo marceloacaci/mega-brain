@@ -30,6 +30,7 @@ Uso:
 import argparse
 import json
 import os
+import re
 import sys
 import time
 import threading
@@ -322,6 +323,25 @@ class Handler(BaseHTTPRequestHandler):
                 _METRICS["mcp_requests_total"] += 1
                 _METRICS["mcp_notes_total"] = total
             return self._send({"total": total, "by_dir": by_dir})
+        if u.path == "/activity":
+            # Heatmap de atividade: conta notas diarias (20_DAILY_NOTES) por data.
+            try:
+                daily_dir = None
+                for d in os.listdir(VAULT):
+                    if d.upper().startswith("20_DAILY") or d.upper().startswith("20_DAILY_NOTES"):
+                        daily_dir = os.path.join(VAULT, d)
+                        break
+                counts = {}
+                if daily_dir and os.path.isdir(daily_dir):
+                    for f in os.listdir(daily_dir):
+                        m = re.match(r"(\d{4}-\d{2}-\d{2})", f)
+                        if m:
+                            counts[m.group(1)] = counts.get(m.group(1), 0) + 1
+                with _METRICS_LOCK:
+                    _METRICS["mcp_requests_total"] += 1
+                return self._send({"daily_dir": daily_dir or "(ausente)", "by_date": counts})
+            except Exception as e:
+                return self._send({"error": f"activity failed: {e}"}, 500)
         # ---- v2.0 rotas de inovação (com fallback heurístico) ----
         if u.path == "/related":
             try:

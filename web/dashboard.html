@@ -5,154 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MEGA BRAIN — Dashboard de Conhecimento</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.css" />
-  <style>
-    :root {
-      /* TEMA ESCURO (padrão) */
-      --bg: #0e1116;
-      --panel: #11161d;
-      --card-1: #1b2433;
-      --card-2: #243043;
-      --txt: #ffffff;
-      --muted: #9aa7b5;
-      --accent: #3b82f6;
-      --accent-2: #7c3aed;
-      --ok: #22c55e;
-      --nok: #ef4444;
-      --border: #2f3c52;
-      --glow: rgba(255,255,255,0.18);
-      --graph-bg: #11161d;
-      --graph-border: #2b3340;
-      --node-stroke: #3b82f6;
-      --node-base: #1e293b;
-      --node-text: #9aa7b5;
-      --edge: #334155;
-      --hover-bg: #1b2433;
-      --hover-border: #3b82f6;
-    }
-    html[data-theme="light"] {
-      /* TEMA CLARO */
-      --bg: #eef2f7;
-      --panel: #ffffff;
-      --card-1: #ffffff;
-      --card-2: #e8eef7;
-      --txt: #0f172a;
-      --muted: #5b6b7d;
-      --accent: #2563eb;
-      --accent-2: #7c3aed;
-      --ok: #16a34a;
-      --nok: #dc2626;
-      --border: #cdd8e6;
-      --glow: rgba(37,99,235,0.25);
-      --graph-bg: #f7fafc;
-      --graph-border: #cdd8e6;
-      --node-stroke: #2563eb;
-      --node-base: #dbeafe;
-      --node-text: #334155;
-      --edge: #aebfd2;
-      --hover-bg: #ffffff;
-      --hover-border: #2563eb;
-    }
-
-    * { box-sizing: border-box; }
-    body { background: var(--bg); color: var(--txt); transition: background .3s, color .3s; }
-    h1.ui.header, h3.ui.header { color: var(--txt) !important; }
-    #graph { height: 60vh; border: 1px solid var(--graph-border); border-radius: 8px; background: var(--graph-bg); transition: background .3s, border-color .3s; }
-    .node { stroke: var(--node-stroke); fill: var(--node-base); cursor: pointer; transition: fill .2s; }
-    .node:hover { fill: var(--accent); }
-    .node.moc { fill: #7c3aed; }
-    .node.project { fill: #059669; }
-    .node.daily { fill: #d97706; }
-    .node.system { fill: #64748b; }
-    .edge { stroke: var(--edge); stroke-opacity: 0.5; }
-
-    /* Barra de topo com titulo + toggle de tema */
-    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5em; }
-    .topbar .title { display: flex; align-items: center; gap: 0.6em; }
-    .topbar h1 { margin: 0; }
-    .ui.button.theme-toggle { background: linear-gradient(160deg, var(--accent) 0%, var(--accent-2) 100%); color: #fff; font-weight: 700; }
-
-    /* LINHA DE CARDS: espacamento + centralizacao */
-    .stat-row {
-      display: flex; flex-wrap: wrap; justify-content: center; gap: 1.4em;
-      margin: 0 auto 0.5em;
-    }
-    .stat-card {
-      flex: 1 1 180px; max-width: 240px;
-      background: linear-gradient(160deg, var(--card-1) 0%, var(--card-2) 100%);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.4em 1em;
-      text-align: center;
-      /* sombra branca (glow) + profundidade */
-      box-shadow: 0 6px 18px var(--glow), 0 8px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.10);
-      color: var(--txt);
-      transition: transform .15s, box-shadow .2s, background .3s, color .3s;
-    }
-    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 26px var(--glow), 0 12px 30px rgba(0,0,0,0.4); }
-    .stat-card .value { font-size: 2.2em; font-weight: 800; color: var(--txt); line-height: 1.1; }
-    .stat-card .label { margin-top: 0.35em; font-size: 0.85em; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
-    .stat-card.is-ok .value { color: var(--ok); }
-    .stat-card.is-nok .value { color: var(--nok); }
-
-    pre.metrics { background: var(--panel); border: 1px solid var(--border); padding: 1em; max-height: 240px; overflow: auto; color: var(--muted); transition: background .3s, border-color .3s; }
-
-    #connPanel {
-      background: linear-gradient(160deg, var(--card-1) 0%, var(--card-2) 100%);
-      border: 1px solid var(--border); border-radius: 12px; padding: 1em 1.1em; margin-top: 1.2em;
-      box-shadow: 0 6px 18px var(--glow), 0 8px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.10);
-      color: var(--txt); transition: background .3s, color .3s;
-    }
-    #connPanel h4 { color: var(--txt) !important; margin-bottom: 0.6em; }
-    #connPanel table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-    #connPanel td { padding: 0.25em 0.4em; border-bottom: 1px solid var(--border); color: var(--txt); }
-    #connPanel td.k { color: var(--muted); }
-    #connPanel td.v { text-align: right; font-weight: 700; color: var(--txt); }
-    #connLog { margin-top: 0.7em; font-size: 0.8em; color: var(--muted); max-height: 120px; overflow: auto; }
-    .ui.button.test-conn { background: linear-gradient(160deg, var(--accent) 0%, var(--accent-2) 100%); color: #fff; font-weight: 700; }
-    .ui.button.test-conn:hover { filter: brightness(1.08); }
-
-    /* Card de hover do no (metadados) */
-    #nodeTip {
-      position: fixed; pointer-events: none; z-index: 50; max-width: 280px;
-      background: var(--hover-bg); border: 1px solid var(--hover-border); border-radius: 10px;
-      padding: 0.7em 0.9em; box-shadow: 0 8px 24px rgba(0,0,0,0.5); color: var(--txt);
-      font-size: 0.82em; display: none; transition: background .3s, color .3s;
-    }
-    #nodeTip h5 { margin: 0 0 0.3em; font-size: 1em; color: var(--txt); }
-    #nodeTip .meta { color: var(--muted); margin: 0.1em 0; }
-    #nodeTip .tag { display: inline-block; background: var(--accent); color: #fff; border-radius: 4px; padding: 0 0.4em; margin: 0.1em 0.2em 0 0; font-size: 0.85em; }
-  </style>
+  <link rel="stylesheet" href="dashboard.css" />
 </head>
 <body>
   <div class="ui container" style="padding: 2em 0;">
     <div class="topbar">
       <div class="title">
-        <h1 class="ui header inverted">
-          <i class="brain icon"></i> MEGA BRAIN
+        <h1 class="ui header inverted"><i class="brain icon"></i> MEGA BRAIN
           <div class="sub header">Dashboard de Conhecimento &amp; Saúde do MCP</div>
         </h1>
       </div>
       <button class="ui button theme-toggle" id="themeBtn"><i class="adjust icon"></i> Tema</button>
     </div>
 
-    <!-- LINHA DE CARDS (centralizados + espacados) -->
     <div class="stat-row">
-      <div class="stat-card">
-        <div class="value" id="stat-nodes">–</div>
-        <div class="label">Nós</div>
-      </div>
-      <div class="stat-card">
-        <div class="value" id="stat-edges">–</div>
-        <div class="label">Arestas</div>
-      </div>
-      <div class="stat-card">
-        <div class="value" id="stat-req">–</div>
-        <div class="label">Requisições</div>
-      </div>
-      <div class="stat-card" id="card-health">
-        <div class="value" id="stat-health">–</div>
-        <div class="label">Saúde</div>
-      </div>
+      <div class="stat-card"><div class="value" id="stat-nodes">–</div><div class="label">Nós</div></div>
+      <div class="stat-card"><div class="value" id="stat-edges">–</div><div class="label">Arestas</div></div>
+      <div class="stat-card"><div class="value" id="stat-req">–</div><div class="label">Requisições</div></div>
+      <div class="stat-card" id="card-health"><div class="value" id="stat-health">–</div><div class="label">Saúde</div></div>
     </div>
 
     <div class="ui grid" style="margin-top: 1.5em;">
@@ -168,12 +38,9 @@
         </div>
         <div id="results" class="ui relaxed list" style="margin-top: 1em;"></div>
 
-        <!-- Teste de saude da conexao -->
-        <div id="connPanel">
+        <div class="panel" id="connPanel">
           <h4 class="ui header"><i class="signal icon"></i> Teste de Saúde da Conexão</h4>
-          <button class="ui button test-conn fluid" id="testConnBtn">
-            <i class="bolt icon"></i> Testar Conexão (ping)
-          </button>
+          <button class="ui button test-conn fluid" id="testConnBtn"><i class="bolt icon"></i> Testar Conexão (ping)</button>
           <table>
             <tr><td class="k">Estado</td><td class="v" id="c-state">–</td></tr>
             <tr><td class="k">Amostras</td><td class="v" id="c-samples">–</td></tr>
@@ -189,181 +56,62 @@
         <pre class="metrics" id="metrics">carregando…</pre>
       </div>
     </div>
+
+    <!-- GRADE DE FERRAMENTAS (10 elementos) -->
+    <div class="tools-grid">
+      <div class="panel"><h4 class="ui header"><i class="sitemap icon"></i> Caminho A→B (BFS)</h4>
+        <div class="ui two fields">
+          <div class="field"><select id="bfsA" class="ui dropdown"></select></div>
+          <div class="field"><select id="bfsB" class="ui dropdown"></select></div>
+        </div>
+        <button class="ui button primary fluid" id="bfsBtn">Traçar caminho</button>
+        <div id="bfsOut" class="meta" style="margin-top:.5em;color:var(--muted)"></div>
+      </div>
+
+      <div class="panel"><h4 class="ui header"><i class="chart pie icon"></i> Donut de Tipos de Nota</h4>
+        <canvas id="donut" width="220" height="220" style="display:block;margin:0 auto;"></canvas>
+        <div id="donutLegend" class="legend" style="margin-top:.6em;justify-content:center"></div>
+      </div>
+
+      <div class="panel"><h4 class="ui header"><i class="unlink icon"></i> Notas Órfãs</h4>
+        <div id="orphans" class="chips"></div>
+        <div id="orphanCount" class="meta" style="margin-top:.4em;color:var(--muted)"></div>
+      </div>
+
+      <div class="panel"><h4 class="ui header"><i class="palette icon"></i> Legenda de Cores</h4>
+        <div id="legend" class="legend"></div>
+        <button class="ui button fluid" id="focusReset" style="margin-top:.8em"><i class="close icon"></i> Sair do Modo Foco</button>
+      </div>
+
+      <div class="panel"><h4 class="ui header"><i class="calendar alternate icon"></i> Heatmap de Atividade</h4>
+        <div id="heat" class="heat"></div>
+        <div id="heatInfo" class="meta" style="margin-top:.4em;color:var(--muted)"></div>
+      </div>
+
+      <div class="panel"><h4 class="ui header"><i class="shield icon"></i> Governança (/validate)</h4>
+        <div id="gov" class="meta" style="color:var(--muted);max-height:200px;overflow:auto"></div>
+        <button class="ui button fluid" id="govBtn" style="margin-top:.6em">Validar vault</button>
+      </div>
+
+      <div class="panel"><h4 class="ui header"><i class="download icon"></i> Exportar Grafo</h4>
+        <button class="ui button fluid" id="expSvg" style="margin-bottom:.5em"><i class="code icon"></i> Salvar SVG</button>
+        <button class="ui button fluid" id="expPng"><i class="image icon"></i> Salvar PNG</button>
+      </div>
+
+      <div class="panel" style="grid-column: 1 / -1;"><h4 class="ui header"><i class="chart bar icon"></i> Painel Grafana (M3)</h4>
+        <div class="ui fluid input" style="margin-bottom:.6em">
+          <input id="grafanaUrl" type="text" placeholder="http://localhost:3000" />
+          <button class="ui button" id="grafanaLoad">Carregar</button>
+        </div>
+        <iframe id="grafana" class="grafana-frame" src="about:blank"></iframe>
+      </div>
+    </div>
+
     <div class="ui tiny message" id="status"></div>
   </div>
 
-  <!-- Card de hover do no -->
   <div id="nodeTip"></div>
-
   <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.js"></script>
-  <script>
-    const MCP = (new URLSearchParams(location.search).get('mcp')) || 'http://localhost:8770';
-    const $ = (s) => document.querySelector(s);
-
-    // ---------- Tema claro/escuro (persiste em localStorage) ----------
-    function applyTheme(t) {
-      document.documentElement.setAttribute('data-theme', t);
-      try { localStorage.setItem('mb_theme', t); } catch (e) {}
-    }
-    (function initTheme() {
-      let t = 'dark';
-      try { t = localStorage.getItem('mb_theme') || 'dark'; } catch (e) {}
-      applyTheme(t);
-    })();
-    $('#themeBtn').addEventListener('click', () => {
-      const cur = document.documentElement.getAttribute('data-theme') || 'dark';
-      applyTheme(cur === 'dark' ? 'light' : 'dark');
-    });
-
-    // ---------- Grafo + card de hover (metadados do no) ----------
-    let GRAPH = null;
-    async function loadGraph() {
-      const r = await fetch(`${MCP}/graph?k=3`);
-      const g = await r.json();
-      GRAPH = g;
-      $('#stat-nodes').textContent = g.nodes.length;
-      $('#stat-edges').textContent = g.edges.length;
-      drawGraph(g);
-    }
-
-    function nodeMeta(node) {
-      // metadados derivados do grafo (grau, tipo, arestas)
-      const degree = (GRAPH ? GRAPH.edges.filter(e => e.source === node.id || e.target === node.id).length : 0);
-      return { degree };
-    }
-
-    function drawGraph(g) {
-      const svg = $('#graph');
-      svg.innerHTML = '';
-      const W = svg.clientWidth, H = svg.clientHeight;
-      const cx = W/2, cy = H/2, R = Math.min(W, H) * 0.42;
-      const pos = {};
-      g.nodes.forEach((n, i) => {
-        const a = (2*Math.PI*i) / g.nodes.length;
-        pos[n.id] = [cx + R*Math.cos(a), cy + R*Math.sin(a)];
-      });
-      const ns = 'http://www.w3.org/2000/svg';
-      g.edges.forEach(e => {
-        const [x1,y1] = pos[e.source] || [cx,cy];
-        const [x2,y2] = pos[e.target] || [cx,cy];
-        const line = document.createElementNS(ns, 'line');
-        line.setAttribute('x1', x1); line.setAttribute('y1', y1);
-        line.setAttribute('x2', x2); line.setAttribute('y2', y2);
-        line.setAttribute('class', 'edge');
-        line.setAttribute('stroke-width', Math.max(0.5, e.weight * 2));
-        svg.appendChild(line);
-      });
-      g.nodes.forEach(n => {
-        const [x,y] = pos[n.id] || [cx,cy];
-        const c = document.createElementNS(ns, 'circle');
-        c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 6);
-        c.setAttribute('class', 'node ' + (n.type || 'note'));
-        c.dataset.id = n.id;
-        const t = document.createElementNS(ns, 'text');
-        t.setAttribute('x', x+9); t.setAttribute('y', y+4);
-        t.setAttribute('fill', 'var(--node-text)'); t.setAttribute('font-size', '10');
-        t.textContent = (n.label || n.id).slice(0, 22);
-        svg.appendChild(c); svg.appendChild(t);
-
-        // hover -> card de metadados
-        c.addEventListener('mouseenter', (ev) => showTip(ev, n));
-        c.addEventListener('mousemove', (ev) => moveTip(ev));
-        c.addEventListener('mouseleave', hideTip);
-      });
-    }
-
-    const tip = $('#nodeTip');
-    function showTip(ev, n) {
-      const m = nodeMeta(n);
-      tip.innerHTML = `<h5>${n.label || n.id}</h5>` +
-        `<div class="meta">Tipo: <b>${n.type || 'note'}</b></div>` +
-        `<div class="meta">Caminho: ${n.id}</div>` +
-        `<div class="meta">Conexões (grau): ${m.degree}</div>`;
-      tip.style.display = 'block';
-      moveTip(ev);
-    }
-    function moveTip(ev) {
-      const pad = 14;
-      let x = ev.clientX + pad, y = ev.clientY + pad;
-      const r = tip.getBoundingClientRect();
-      if (x + r.width > window.innerWidth) x = ev.clientX - r.width - pad;
-      if (y + r.height > window.innerHeight) y = ev.clientY - r.height - pad;
-      tip.style.left = x + 'px'; tip.style.top = y + 'px';
-    }
-    function hideTip() { tip.style.display = 'none'; }
-
-    async function search() {
-      const q = $('#q').value.trim();
-      if (!q) return;
-      const r = await fetch(`${MCP}/search?q=${encodeURIComponent(q)}&k=5`);
-      const data = await r.json();
-      const items = (data.results || []).map(x =>
-        `<div class="item"><div class="content"><div class="header">${x.path}</div>` +
-        `<div class="description">${x.snippet || ''}</div></div></div>`).join('');
-      $('#results').innerHTML = items || '<div class="item">sem resultados</div>';
-    }
-
-    async function loadMetrics() {
-      try {
-        const r = await fetch(`${MCP}/metrics`);
-        $('#metrics').textContent = await r.text();
-        const m = ($('#metrics').textContent.match(/mcp_requests_total (\d+)/) || [])[1];
-        if (m) $('#stat-req').textContent = m;
-      } catch (e) { $('#metrics').textContent = 'metrics indisponível'; }
-    }
-
-    async function health() {
-      try {
-        const r = await fetch(`${MCP}/health`);
-        const ok = (await r.json()).ok;
-        const card = $('#card-health');
-        card.classList.toggle('is-ok', ok);
-        card.classList.toggle('is-nok', !ok);
-        $('#stat-health').textContent = ok ? 'OK' : 'NOK';
-        $('#status').textContent = ok ? `Conectado a ${MCP}` : `Sem resposta de ${MCP}`;
-      } catch (e) {
-        $('#card-health').classList.add('is-nok');
-        $('#stat-health').textContent = 'NOK';
-        $('#status').textContent = `Erro: ${e}`;
-      }
-    }
-
-    // ---- Teste de saude da conexao (mede latencia real de ping ao /health) ----
-    async function testConnection(samples = 10) {
-      const btn = $('#testConnBtn');
-      btn.classList.add('loading', 'disabled');
-      $('#c-state').textContent = 'testando…';
-      $('#c-samples').textContent = '0';
-      $('#connLog').textContent = '';
-      const lat = [];
-      let ok = 0;
-      for (let i = 0; i < samples; i++) {
-        const t0 = performance.now();
-        try {
-          const r = await fetch(`${MCP}/health?_=${Date.now()}`, { cache: 'no-store' });
-          const dt = performance.now() - t0;
-          if (r.ok) { lat.push(dt); ok++; $('#c-samples').textContent = ok; }
-          $('#connLog').textContent = `amostra ${i+1}: ${dt.toFixed(1)} ms (${r.ok ? 'ok' : 'falha'})`;
-        } catch (e) {
-          $('#connLog').textContent = `amostra ${i+1}: ERRO ${e}`;
-        }
-      }
-      btn.classList.remove('loading', 'disabled');
-      if (lat.length === 0) { $('#c-state').textContent = 'FALHA'; return; }
-      const min = Math.min(...lat), max = Math.max(...lat);
-      const avg = lat.reduce((a,b)=>a+b,0) / lat.length;
-      const jitter = lat.reduce((a,b)=>a+Math.abs(b-avg),0) / lat.length;
-      $('#c-state').textContent = `OK (${ok}/${samples})`;
-      $('#c-min').textContent = `${min.toFixed(1)} ms`;
-      $('#c-avg').textContent = `${avg.toFixed(1)} ms`;
-      $('#c-max').textContent = `${max.toFixed(1)} ms`;
-      $('#c-jitter').textContent = `${jitter.toFixed(1)} ms`;
-    }
-    $('#testConnBtn').addEventListener('click', () => testConnection(10));
-
-    $('#searchBtn').addEventListener('click', search);
-    health(); loadGraph(); loadMetrics(); testConnection(5);
-    setInterval(() => { health(); loadMetrics(); }, 15000);
-  </script>
+  <script src="dashboard.js"></script>
 </body>
 </html>
