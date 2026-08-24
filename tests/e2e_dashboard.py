@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""E2E S10-B — dashboard web consome o grafo do MCP.
+"""E2E — dashboard web consome o grafo + painéis do MCP (S10-B + painéis v2.1).
 
 Sobe o MCP num vault fixture e valida:
-  - GET /graph retorna nos + arestas validos (pelo menos 1 no, 0+ arestas).
-  - web/dashboard.html existe e referencia /graph (o dashboard o consome).
+  - GET /graph retorna nos + arestas validos.
+  - GET /activity retorna contrato {daily_dir, by_date}.
+  - GET /validate retorna contrato {ok, total_notas, problemas}.
+  - web/dashboard.html referencia os painéis: /graph, /activity, /validate, donut, orphans, legenda.
 O teste NAO precisa de browser: valida o contrato de dados + o HTML.
 """
 import os
@@ -53,9 +55,12 @@ def main():
         print("FAIL: web/dashboard.html ausente")
         return 1
     html = open(DASHBOARD, encoding="utf-8").read()
-    if "/graph" not in html:
-        print("FAIL: dashboard.html nao referencia /graph")
-        return 1
+    # contratos consumidos pelo dashboard (painéis v2.1)
+    for token in ["/graph", "/activity", "/validate", "id=\"donut\"", "id=\"orphans\"", "id=\"nodeTip\"",
+                  "heatmap", "Caminho de Conexão", "Grafana", "Tema"]:
+        if token not in html:
+            print(f"FAIL: dashboard.html nao referencia '{token}'")
+            return 1
 
     tmp = tempfile.mkdtemp(prefix="mb_dash_")
     try:
@@ -80,15 +85,21 @@ def main():
         g = get_json(f"{base}/graph?k=3")
         n_nodes = len(g.get("nodes", []))
         n_edges = len(g.get("edges", []))
+        act = get_json(f"{base}/activity")
+        val = get_json(f"{base}/validate")
         proc.terminate()
         try:
             proc.wait(timeout=5)
         except Exception:
             proc.kill()
-        if n_nodes >= 1 and n_edges >= 1:
-            print(f"PASS: /graph retornou {n_nodes} nos e {n_edges} arestas; dashboard referencia /graph")
+
+        ok = (n_nodes >= 1 and n_edges >= 1
+              and isinstance(act.get("by_date"), dict)
+              and "ok" in val and "total_notas" in val and "problemas" in val)
+        if ok:
+            print(f"PASS: /graph={n_nodes}n/{n_edges}e, /activity ok, /validate ok (problemas={len(val['problemas'])})")
             return 0
-        print(f"FAIL: /graph retornou nodes={n_nodes} edges={n_edges}")
+        print(f"FAIL: graph={n_nodes}/{n_edges} activity={act} validate={val}")
         return 1
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

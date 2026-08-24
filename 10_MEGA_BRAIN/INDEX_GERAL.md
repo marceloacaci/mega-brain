@@ -1,30 +1,29 @@
----
+﻿---
 tipo: meta-indice
 criado: 2026-08-21
-atualizado: 2026-08-22
+atualizado: 2026-08-23
 tags: [meta/index]
 ---
 # 🧠 MEGA BRAIN — Índice Geral
 
 > Dashboard vivo do meu Segundo Cérebro.
-> Atualizado automaticamente pelo 
-eindex_hybrid.ps1 (light 6h + deep semanal).
+> Atualizado automaticamente pelo eindex_hybrid.ps1 (light 6h + deep semanal).
 
 ## ⏱️ Timestamps
-- **Última reindexação:** 2026-08-22 10:40:50
-- **Última light:** 2026-08-22T09:23:43.1625581-03:00
-- **Última deep:** 2026-08-22 10:40:50
-- **Próxima light:** 2026-08-22 15:23:43
-- **Próxima deep:** 2026-08-23 23:00:00
+- **Última reindexação:** 2026-08-23 23:00:01
+- **Última light:** 2026-08-23T22:15:21.0970415-03:00
+- **Última deep:** 2026-08-23 23:00:01
+- **Próxima light:** 2026-08-24 04:15:21
+- **Próxima deep:** 2026-08-30 23:00:00
 
 ## ⏰ Status de Sincronização
 - MCP server: ONLINE (8770)
-- **Última sincronização:** 2026-08-22T09:23:43.1625581-03:00
+- **Última sincronização:** 2026-08-23T22:15:21.0970415-03:00
 
 ## 📊 Visão Geral
 - Projetos: 3
 - MOCs: 9
-- Notas (.md): 78
+- Notas (.md): 162
 
 ## 📂 Projetos Ativos
 ```dataview
@@ -111,11 +110,5 @@ LIMIT 4
 - [[PREFERENCIAS_PESSOAIS]] · [[PADROES_RECorrentes]] · [[DECISOES_REUTILIZAVEIS]] · [[STACKS_MAPeadas]]
 
 ## Métricas
-- Notas .md: 78 · Projetos: 3 · MOCs: 9
-- Última execução (deep): 2026-08-22 10:40:50
-
-[[README]]
-
-[[MOC_JavaScript]]
-
-[[MOC_GERAL]]
+- Notas .md: 162 · Projetos: 3 · MOCs: 9
+- Última execução (deep): 2026-08-23 23:00:01

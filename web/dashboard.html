@@ -5,17 +5,91 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MEGA BRAIN — Dashboard de Conhecimento</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.css" />
-  <link rel="stylesheet" href="dashboard.css" />
+  <style>
+    :root {
+      --bg: #0e1116; --panel: #11161d; --card-1: #1b2433; --card-2: #243043;
+      --txt: #ffffff; --muted: #9aa7b5; --accent: #3b82f6; --accent-2: #7c3aed;
+      --ok: #22c55e; --nok: #ef4444; --border: #2f3c52; --glow: rgba(255,255,255,0.18);
+      --graph-bg: #11161d; --graph-border: #2b3340; --node-stroke: #3b82f6;
+      --node-base: #1e293b; --node-text: #9aa7b5; --edge: #334155;
+      --hover-bg: #1b2433; --hover-border: #3b82f6;
+    }
+    html[data-theme="light"] {
+      --bg: #eef2f7; --panel: #ffffff; --card-1: #ffffff; --card-2: #e8eef7;
+      --txt: #0f172a; --muted: #5b6b7d; --accent: #2563eb; --accent-2: #7c3aed;
+      --ok: #16a34a; --nok: #dc2626; --border: #cdd8e6; --glow: rgba(37,99,235,0.25);
+      --graph-bg: #f7fafc; --graph-border: #cdd8e6; --node-stroke: #2563eb;
+      --node-base: #dbeafe; --node-text: #334155; --edge: #aebfd2;
+      --hover-bg: #ffffff; --hover-border: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    body { background: var(--bg); color: var(--txt); transition: background .3s, color .3s; }
+    h1.ui.header, h3.ui.header { color: var(--txt) !important; }
+    #graph { height: 62vh; border: 1px solid var(--graph-border); border-radius: 8px; background: var(--graph-bg); transition: background .3s, border-color .3s; }
+    .node { stroke: var(--node-stroke); fill: var(--node-base); cursor: pointer; transition: fill .2s, opacity .2s; }
+    .node.moc { fill: #7c3aed; } .node.project { fill: #059669; }
+    .node.daily { fill: #d97706; } .node.system { fill: #64748b; }
+    .node.dim { opacity: 0.12; }
+    .node.hl { fill: var(--accent); stroke: #fff; }
+    .edge { stroke: var(--edge); stroke-opacity: 0.5; transition: opacity .2s; }
+    .edge.dim { opacity: 0.06; } .edge.path { stroke: var(--accent); stroke-opacity: 1; stroke-width: 3; }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5em; }
+    .topbar h1 { margin: 0; }
+    .ui.button.theme-toggle { background: linear-gradient(160deg, var(--accent) 0%, var(--accent-2) 100%); color: #fff; font-weight: 700; }
+
+    .stat-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.4em; margin: 0 auto 0.5em; }
+    .stat-card { flex: 1 1 180px; max-width: 240px; background: linear-gradient(160deg, var(--card-1) 0%, var(--card-2) 100%);
+      border: 1px solid var(--border); border-radius: 12px; padding: 1.4em 1em; text-align: center;
+      box-shadow: 0 6px 18px var(--glow), 0 8px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.10);
+      color: var(--txt); transition: transform .15s, box-shadow .2s, background .3s, color .3s; }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 26px var(--glow), 0 12px 30px rgba(0,0,0,0.4); }
+    .stat-card .value { font-size: 2.2em; font-weight: 800; color: var(--txt); line-height: 1.1; }
+    .stat-card .label { margin-top: 0.35em; font-size: 0.85em; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+    .stat-card.is-ok .value { color: var(--ok); } .stat-card.is-nok .value { color: var(--nok); }
+
+    .panel { background: linear-gradient(160deg, var(--card-1) 0%, var(--card-2) 100%); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1em 1.1em; margin-top: 1.2em; box-shadow: 0 6px 18px var(--glow), 0 8px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.10);
+      color: var(--txt); transition: background .3s, color .3s; }
+    .panel h4 { color: var(--txt) !important; margin-bottom: 0.6em; }
+    pre.metrics, pre.validate { background: var(--panel); border: 1px solid var(--border); padding: 1em; max-height: 240px; overflow: auto; color: var(--muted); transition: background .3s, border-color .3s; }
+    #connPanel table, #pathPanel table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+    td { padding: 0.25em 0.4em; border-bottom: 1px solid var(--border); color: var(--txt); }
+    td.k { color: var(--muted); } td.v { text-align: right; font-weight: 700; color: var(--txt); }
+    #connLog, #orphans, #validateOut, #pathOut { font-size: 0.8em; color: var(--muted); max-height: 160px; overflow: auto; }
+    .ui.button.test-conn, .ui.button.action { background: linear-gradient(160deg, var(--accent) 0%, var(--accent-2) 100%); color: #fff; font-weight: 700; }
+    .ui.button.action:hover, .ui.button.test-conn:hover { filter: brightness(1.08); }
+
+    #nodeTip { position: fixed; pointer-events: none; z-index: 50; max-width: 280px; background: var(--hover-bg);
+      border: 1px solid var(--hover-border); border-radius: 10px; padding: 0.7em 0.9em; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      color: var(--txt); font-size: 0.82em; display: none; transition: background .3s, color .3s; }
+    #nodeTip h5 { margin: 0 0 0.3em; font-size: 1em; color: var(--txt); }
+    #nodeTip .meta { color: var(--muted); margin: 0.1em 0; }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 0.6em; font-size: 0.8em; margin-top: 0.6em; }
+    .legend .item { display: flex; align-items: center; gap: 0.35em; color: var(--muted); }
+    .legend .sw { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+
+    .donut-wrap { display: flex; align-items: center; gap: 1em; }
+    .donut-legend { font-size: 0.8em; color: var(--muted); }
+
+    .heatmap { display: grid; grid-template-columns: repeat(20, 1fr); gap: 3px; margin-top: 0.6em; }
+    .heatmap .cell { width: 100%; aspect-ratio: 1; border-radius: 2px; background: var(--border); }
+  </style>
 </head>
 <body>
   <div class="ui container" style="padding: 2em 0;">
     <div class="topbar">
       <div class="title">
-        <h1 class="ui header inverted"><i class="brain icon"></i> MEGA BRAIN
+        <h1 class="ui header inverted">
+          <i class="brain icon"></i> MEGA BRAIN
           <div class="sub header">Dashboard de Conhecimento &amp; Saúde do MCP</div>
         </h1>
       </div>
-      <button class="ui button theme-toggle" id="themeBtn"><i class="adjust icon"></i> Tema</button>
+      <div>
+        <button class="ui button theme-toggle" id="themeBtn"><i class="adjust icon"></i> Tema</button>
+        <button class="ui button action" id="exportBtn"><i class="download icon"></i> Exportar SVG</button>
+      </div>
     </div>
 
     <div class="stat-row">
@@ -27,18 +101,54 @@
 
     <div class="ui grid" style="margin-top: 1.5em;">
       <div class="ten wide column">
-        <h3 class="ui header inverted">Grafo de Conhecimento</h3>
-        <svg id="graph" width="100%"></svg>
-      </div>
-      <div class="six wide column">
-        <h3 class="ui header inverted">Busca Semântica</h3>
-        <div class="ui fluid action input">
-          <input id="q" type="text" placeholder="termo (ex: parcelas)" />
-          <button class="ui button primary" id="searchBtn">Buscar</button>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <h3 class="ui header inverted">Grafo de Conhecimento</h3>
+          <span class="ui small text" style="color:var(--muted)">clique num nó = Modo Foco</span>
         </div>
-        <div id="results" class="ui relaxed list" style="margin-top: 1em;"></div>
+        <svg id="graph" width="100%"></svg>
+        <div class="legend">
+          <span class="item"><span class="sw" style="background:#3b82f6"></span>note</span>
+          <span class="item"><span class="sw" style="background:#7c3aed"></span>moc</span>
+          <span class="item"><span class="sw" style="background:#059669"></span>project</span>
+          <span class="item"><span class="sw" style="background:#d97706"></span>daily</span>
+          <span class="item"><span class="sw" style="background:#64748b"></span>system</span>
+        </div>
 
-        <div class="panel" id="connPanel">
+        <div class="panel">
+          <h4 class="ui header"><i class="search icon"></i> Busca Unificada (destaca no grafo)</h4>
+          <div class="ui fluid action input">
+            <input id="q" type="text" placeholder="termo (ex: parcelas) — destaca nó no grafo" />
+            <button class="ui button primary" id="searchBtn">Buscar</button>
+          </div>
+          <div id="results" class="ui relaxed list" style="margin-top: 0.6em;"></div>
+        </div>
+
+        <div class="panel">
+          <h4 class="ui header"><i class="project diagram icon"></i> Caminho de Conexão A → B (BFS)</h4>
+          <div class="ui form" style="display:flex; gap:0.5em; flex-wrap:wrap;">
+            <input id="pathA" placeholder="nota A (ex: INDEX_GERAL)" style="flex:1; min-width:140px; padding:0.4em; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--txt);" />
+            <input id="pathB" placeholder="nota B" style="flex:1; min-width:140px; padding:0.4em; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--txt);" />
+            <button class="ui button action" id="pathBtn">Traçar</button>
+          </div>
+          <div id="pathOut" style="margin-top:0.6em;"></div>
+        </div>
+
+        <div class="panel">
+          <h4 class="ui header"><i class="chart pie icon"></i> Distribuição de Tipos (Donut)</h4>
+          <div class="donut-wrap">
+            <svg id="donut" width="140" height="140" viewBox="0 0 140 140"></svg>
+            <div class="donut-legend" id="donutLegend"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h4 class="ui header"><i class="calendar icon"></i> Heatmap de Atividade (daily notes)</h4>
+          <div class="heatmap" id="heatmap"></div>
+        </div>
+      </div>
+
+      <div class="six wide column">
+        <div id="connPanel" class="panel">
           <h4 class="ui header"><i class="signal icon"></i> Teste de Saúde da Conexão</h4>
           <button class="ui button test-conn fluid" id="testConnBtn"><i class="bolt icon"></i> Testar Conexão (ping)</button>
           <table>
@@ -52,66 +162,210 @@
           <div id="connLog"></div>
         </div>
 
-        <h3 class="ui header inverted" style="margin-top: 1.5em;">Métricas (Prometheus)</h3>
-        <pre class="metrics" id="metrics">carregando…</pre>
+        <div class="panel">
+          <h4 class="ui header"><i class="unlink icon"></i> Notas Órfãs (grau 0)</h4>
+          <div id="orphans">carregando…</div>
+        </div>
+
+        <div class="panel">
+          <h4 class="ui header"><i class="shield icon"></i> Governança (/validate)</h4>
+          <button class="ui button action fluid" id="validateBtn"><i class="check circle icon"></i> Validar Vault</button>
+          <pre class="validate" id="validateOut" style="margin-top:0.6em;">aguardando…</pre>
+        </div>
+
+        <div class="panel">
+          <h4 class="ui header"><i class="chart line icon"></i> Métricas (Prometheus)</h4>
+          <pre class="metrics" id="metrics">carregando…</pre>
+        </div>
+
+        <div class="panel">
+          <h4 class="ui header"><i class="chart bar icon"></i> Grafana (M3)</h4>
+          <div class="ui fluid input"><input id="grafanaUrl" value="http://localhost:3000" style="padding:0.4em; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--txt);" /></div>
+          <iframe id="grafana" style="width:100%; height:220px; border:1px solid var(--border); border-radius:8px; margin-top:0.6em; background:var(--panel);" title="Grafana"></iframe>
+        </div>
       </div>
     </div>
-
-    <!-- GRADE DE FERRAMENTAS (10 elementos) -->
-    <div class="tools-grid">
-      <div class="panel"><h4 class="ui header"><i class="sitemap icon"></i> Caminho A→B (BFS)</h4>
-        <div class="ui two fields">
-          <div class="field"><select id="bfsA" class="ui dropdown"></select></div>
-          <div class="field"><select id="bfsB" class="ui dropdown"></select></div>
-        </div>
-        <button class="ui button primary fluid" id="bfsBtn">Traçar caminho</button>
-        <div id="bfsOut" class="meta" style="margin-top:.5em;color:var(--muted)"></div>
-      </div>
-
-      <div class="panel"><h4 class="ui header"><i class="chart pie icon"></i> Donut de Tipos de Nota</h4>
-        <canvas id="donut" width="220" height="220" style="display:block;margin:0 auto;"></canvas>
-        <div id="donutLegend" class="legend" style="margin-top:.6em;justify-content:center"></div>
-      </div>
-
-      <div class="panel"><h4 class="ui header"><i class="unlink icon"></i> Notas Órfãs</h4>
-        <div id="orphans" class="chips"></div>
-        <div id="orphanCount" class="meta" style="margin-top:.4em;color:var(--muted)"></div>
-      </div>
-
-      <div class="panel"><h4 class="ui header"><i class="palette icon"></i> Legenda de Cores</h4>
-        <div id="legend" class="legend"></div>
-        <button class="ui button fluid" id="focusReset" style="margin-top:.8em"><i class="close icon"></i> Sair do Modo Foco</button>
-      </div>
-
-      <div class="panel"><h4 class="ui header"><i class="calendar alternate icon"></i> Heatmap de Atividade</h4>
-        <div id="heat" class="heat"></div>
-        <div id="heatInfo" class="meta" style="margin-top:.4em;color:var(--muted)"></div>
-      </div>
-
-      <div class="panel"><h4 class="ui header"><i class="shield icon"></i> Governança (/validate)</h4>
-        <div id="gov" class="meta" style="color:var(--muted);max-height:200px;overflow:auto"></div>
-        <button class="ui button fluid" id="govBtn" style="margin-top:.6em">Validar vault</button>
-      </div>
-
-      <div class="panel"><h4 class="ui header"><i class="download icon"></i> Exportar Grafo</h4>
-        <button class="ui button fluid" id="expSvg" style="margin-bottom:.5em"><i class="code icon"></i> Salvar SVG</button>
-        <button class="ui button fluid" id="expPng"><i class="image icon"></i> Salvar PNG</button>
-      </div>
-
-      <div class="panel" style="grid-column: 1 / -1;"><h4 class="ui header"><i class="chart bar icon"></i> Painel Grafana (M3)</h4>
-        <div class="ui fluid input" style="margin-bottom:.6em">
-          <input id="grafanaUrl" type="text" placeholder="http://localhost:3000" />
-          <button class="ui button" id="grafanaLoad">Carregar</button>
-        </div>
-        <iframe id="grafana" class="grafana-frame" src="about:blank"></iframe>
-      </div>
-    </div>
-
     <div class="ui tiny message" id="status"></div>
   </div>
 
   <div id="nodeTip"></div>
+
   <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.js"></script>
-  <script src="dashboard.js"></script>
+  <script>
+    const MCP = (new URLSearchParams(location.search).get('mcp')) || 'http://localhost:8770';
+    const $ = (s) => document.querySelector(s);
+
+    function applyTheme(t){ document.documentElement.setAttribute('data-theme', t); try{localStorage.setItem('mb_theme',t);}catch(e){} }
+    (function(){ let t='dark'; try{t=localStorage.getItem('mb_theme')||'dark';}catch(e){} applyTheme(t); })();
+    $('#themeBtn').addEventListener('click', () => { const c=document.documentElement.getAttribute('data-theme')||'dark'; applyTheme(c==='dark'?'light':'dark'); });
+
+    let GRAPH=null, POS={}, NODE_BY_ID={};
+    async function loadGraph(){
+      const r = await fetch(`${MCP}/graph?k=3`); const g = await r.json(); GRAPH=g;
+      $('#stat-nodes').textContent=g.nodes.length; $('#stat-edges').textContent=g.edges.length;
+      drawGraph(g); buildLegendTypes(g); renderOrphans(g);
+    }
+
+    function neighbors(id){
+      const out=new Set();
+      (GRAPH?GRAPH.edges:[]).forEach(e=>{ if(e.source===id) out.add(e.target); if(e.target===id) out.add(e.source); });
+      return out;
+    }
+
+    function drawGraph(g){
+      const svg=$('#graph'); svg.innerHTML=''; POS={}; NODE_BY_ID={};
+      const W=svg.clientWidth, H=svg.clientHeight, cx=W/2, cy=H/2, R=Math.min(W,H)*0.42;
+      g.nodes.forEach((n,i)=>{ const a=(2*Math.PI*i)/g.nodes.length; POS[n.id]=[cx+R*Math.cos(a), cy+R*Math.sin(a)]; NODE_BY_ID[n.id]=n; });
+      const ns='http://www.w3.org/2000/svg';
+      g.edges.forEach(e=>{
+        const [x1,y1]=POS[e.source]||[cx,cy], [x2,y2]=POS[e.target]||[cx,cy];
+        const line=document.createElementNS(ns,'line');
+        line.setAttribute('x1',x1); line.setAttribute('y1',y1); line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+        line.setAttribute('class','edge'); line.setAttribute('data-s',e.source); line.setAttribute('data-t',e.target);
+        line.setAttribute('stroke-width',Math.max(0.5,e.weight*2)); svg.appendChild(line);
+      });
+      g.nodes.forEach(n=>{
+        const [x,y]=POS[n.id]||[cx,cy];
+        const c=document.createElementNS(ns,'circle');
+        c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('r',6);
+        c.setAttribute('class','node '+(n.type||'note')); c.dataset.id=n.id; c.dataset.label=(n.label||n.id);
+        const t=document.createElementNS(ns,'text');
+        t.setAttribute('x',x+9); t.setAttribute('y',y+4); t.setAttribute('fill','var(--node-text)'); t.setAttribute('font-size','10');
+        t.textContent=(n.label||n.id).slice(0,22);
+        svg.appendChild(c); svg.appendChild(t);
+        c.addEventListener('mouseenter',ev=>showTip(ev,n)); c.addEventListener('mousemove',moveTip); c.addEventListener('mouseleave',hideTip);
+        c.addEventListener('click',()=>focusNode(n.id));
+      });
+    }
+
+    let focusActive=false;
+    function focusNode(id){
+      focusActive=true;
+      const nb=neighbors(id);
+      document.querySelectorAll('#graph .node').forEach(c=>{ const cid=c.dataset.id; c.classList.toggle('dim', cid!==id && !nb.has(cid)); });
+      document.querySelectorAll('#graph .edge').forEach(l=>{ const s=l.getAttribute('data-s'), t=l.getAttribute('data-t'); l.classList.toggle('dim', !(s===id||t===id)); });
+    }
+    function clearFocus(){ focusActive=false; document.querySelectorAll('#graph .node, #graph .edge').forEach(e=>e.classList.remove('dim')); }
+
+    async function search(){
+      const q=$('#q').value.trim(); if(!q) return;
+      const r=await fetch(`${MCP}/search?q=${encodeURIComponent(q)}&k=5`); const data=await r.json();
+      const items=(data.results||[]).map(x=>`<div class="item"><div class="content"><div class="header">${x.path}</div><div class="description">${x.snippet||''}</div></div></div>`).join('');
+      $('#results').innerHTML=items||'<div class="item">sem resultados</div>';
+      const ql=q.toLowerCase();
+      let any=false;
+      document.querySelectorAll('#graph .node').forEach(c=>{ const hit=((c.dataset.label||'')+c.dataset.id).toLowerCase().includes(ql); c.classList.toggle('hl',hit); if(hit)any=true; });
+      $('#status').textContent = any ? `Busca: ${q} destacado no grafo` : `Busca: ${q} sem nó correspondente`;
+    }
+
+    function bfsPath(a,b){
+      if(!GRAPH) return null;
+      a=(a||'').trim(); b=(b||'').trim();
+      const adj={}; GRAPH.nodes.forEach(n=>adj[n.id]=[]);
+      GRAPH.edges.forEach(e=>{ if(adj[e.source])adj[e.source].push(e.target); if(adj[e.target])adj[e.target].push(e.source); });
+      const resolve=(s)=>{ if(adj[s])return s; const f=GRAPH.nodes.find(n=>n.id.toLowerCase().includes(s.toLowerCase())||(n.label||'').toLowerCase().includes(s.toLowerCase())); return f?f.id:null; };
+      const sa=resolve(a), sb=resolve(b); if(!sa||!sb) return {error:'nota nao encontrada'};
+      const prev={}, q=[sa]; prev[sa]=null;
+      while(q.length){ const cur=q.shift(); if(cur===sb) break; (adj[cur]||[]).forEach(nx=>{ if(!(nx in prev)){ prev[nx]=cur; q.push(nx); } }); }
+      if(!(sb in prev)) return {error:'sem caminho'};
+      const path=[]; let c=sb; while(c!==null){ path.unshift(c); c=prev[c]; }
+      return {path, from:sa, to:sb};
+    }
+    function drawPath(res){
+      document.querySelectorAll('#graph .edge').forEach(l=>l.classList.remove('path'));
+      if(!res||res.error){ $('#pathOut').textContent='Erro: '+res.error; return; }
+      for(let i=0;i<res.path.length-1;i++){ const a=res.path[i], b=res.path[i+1];
+        document.querySelectorAll('#graph .edge').forEach(l=>{ if((l.getAttribute('data-s')===a&&l.getAttribute('data-t')===b)||(l.getAttribute('data-s')===b&&l.getAttribute('data-t')===a)) l.classList.add('path'); }); }
+      $('#pathOut').textContent='Caminho ('+res.path.length+' nós): '+res.path.join(' → ');
+    }
+
+    function buildLegendTypes(g){
+      const counts={}; g.nodes.forEach(n=>{ const t=n.type||'note'; counts[t]=(counts[t]||0)+1; });
+      const palette={core:'#3b82f6',moc:'#7c3aed',project:'#059669',daily:'#d97706',system:'#64748b',area:'#0ea5e9',resource:'#ec4899',archive:'#f59e0b',alert:'#ef4444',doc:'#14b8a6',note:'#94a3b8'};
+      const total=g.nodes.length||1; let acc=0; const ns='http://www.w3.org/2000/svg';
+      const svg=$('#donut'); svg.innerHTML='';
+      const cx=70,cy=70,r=55,sw=22;
+      Object.entries(counts).forEach(([t,c])=>{
+        const frac=c/total, a0=acc*2*Math.PI- Math.PI/2, a1=acc*2*Math.PI+frac*2*Math.PI- Math.PI/2; acc+=frac;
+        const p=document.createElementNS(ns,'path');
+        const x0=cx+r*Math.cos(a0), y0=cy+r*Math.sin(a0), x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+        const large=(frac>0.5)?1:0;
+        p.setAttribute('d',`M${x0},${y0} A${r},${r} 0 ${large} 1 ${x1},${y1} L${cx},${cy} Z`);
+        p.setAttribute('fill',palette[t]||'#94a3b8'); svg.appendChild(p);
+      });
+      const leg=$('#donutLegend'); leg.innerHTML=Object.entries(counts).map(([t,c])=>`<div><span style="color:${palette[t]||'#94a3b8'}">■</span> ${t}: <b>${c}</b></div>`).join('');
+    }
+
+    function renderOrphans(g){
+      const deg={}; g.nodes.forEach(n=>deg[n.id]=0);
+      g.edges.forEach(e=>{ if(deg[e.source]!==undefined)deg[e.source]++; if(deg[e.target]!==undefined)deg[e.target]++; });
+      const orf=g.nodes.filter(n=>deg[n.id]===0).map(n=>n.label||n.id);
+      $('#orphans').innerHTML = orf.length ? orf.map(o=>`<div>• ${o}</div>`).join('') : '<div>nenhuma (grafo totalmente conectado)</div>';
+    }
+
+    async function loadActivity(){
+      try{
+        const r=await fetch(`${MCP}/activity`); const data=await r.json();
+        const hm=$('#heatmap'); hm.innerHTML='';
+        const maxc=Math.max(1,...Object.values(data.by_date||{}));
+        Object.entries(data.by_date||{}).forEach(([d,c])=>{
+          const cell=document.createElement('div'); cell.className='cell'; cell.title=`${d}: ${c} notas`;
+          cell.style.background=`rgba(59,130,246,${0.25+0.75*(c/maxc)})`;
+          hm.appendChild(cell);
+        });
+        if(!Object.keys(data.by_date||{}).length) hm.innerHTML='<span style="color:var(--muted)">sem daily notes</span>';
+      }catch(e){ $('#heatmap').innerHTML='<span style="color:var(--muted)">atividade indisponível</span>'; }
+    }
+
+    async function runValidate(){
+      try{
+        const r=await fetch(`${MCP}/validate`); const v=await r.json();
+        const probs=v.problemas||[];
+        const html=`<div>Total notas: <b>${v.total_notas||0}</b> · Problemas: <b style="color:${probs.length?'var(--nok)':'var(--ok)'}">${probs.length}</b></div>`+
+          (probs.slice(0,30).map(p=>`<div>• [${p.tipo}] ${p.path||''} — ${p.msg||''}</div>`).join('')||'<div>vault íntegro ✓</div>');
+        $('#validateOut').innerHTML=html;
+      }catch(e){ $('#validateOut').textContent='validate indisponível: '+e; }
+    }
+
+    function loadGrafana(){ try{ $('#grafana').src=$('#grafanaUrl').value; }catch(e){} }
+    $('#grafanaUrl').addEventListener('change', loadGrafana);
+
+    const tip=$('#nodeTip');
+    function showTip(ev,n){ const deg=neighbors(n.id).size;
+      tip.innerHTML=`<h5>${n.label||n.id}</h5><div class="meta">Tipo: <b>${n.type||'note'}</b></div><div class="meta">Caminho: ${n.id}</div><div class="meta">Conexões (grau): ${deg}</div>`;
+      tip.style.display='block'; moveTip(ev); }
+    function moveTip(ev){ const pad=14; let x=ev.clientX+pad, y=ev.clientY+pad; const r=tip.getBoundingClientRect();
+      if(x+r.width>window.innerWidth)x=ev.clientX-r.width-pad; if(y+r.height>window.innerHeight)y=ev.clientY-r.height-pad;
+      tip.style.left=x+'px'; tip.style.top=y+'px'; }
+    function hideTip(){ tip.style.display='none'; }
+
+    $('#exportBtn').addEventListener('click', ()=>{
+      const svg=$('#graph').cloneNode(true); svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
+      const data='<?xml version="1.0"?>\n'+new XMLSerializer().serializeToString(svg);
+      const a=document.createElement('a'); a.href='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(data);
+      a.download='mega_brain_graph.svg'; a.click();
+    });
+
+    async function loadMetrics(){ try{ const r=await fetch(`${MCP}/metrics`); $('#metrics').textContent=await r.text();
+      const m=($('#metrics').textContent.match(/mcp_requests_total (\d+)/)||[])[1]; if(m)$('#stat-req').textContent=m; }catch(e){ $('#metrics').textContent='metrics indisponível'; } }
+    async function health(){ try{ const r=await fetch(`${MCP}/health`); const ok=(await r.json()).ok;
+      const card=$('#card-health'); card.classList.toggle('is-ok',ok); card.classList.toggle('is-nok',!ok);
+      $('#stat-health').textContent=ok?'OK':'NOK'; $('#status').textContent=ok?`Conectado a ${MCP}`:`Sem resposta de ${MCP}`; }catch(e){ $('#card-health').classList.add('is-nok'); $('#stat-health').textContent='NOK'; $('#status').textContent=`Erro: ${e}`; } }
+    async function testConnection(samples=10){ const btn=$('#testConnBtn'); btn.classList.add('loading','disabled'); $('#c-state').textContent='testando…'; $('#c-samples').textContent='0'; $('#connLog').textContent='';
+      const lat=[]; let ok=0;
+      for(let i=0;i<samples;i++){ const t0=performance.now(); try{ const r=await fetch(`${MCP}/health?_=${Date.now()}`,{cache:'no-store'}); const dt=performance.now()-t0; if(r.ok){lat.push(dt);ok++;$('#c-samples').textContent=ok;} $('#connLog').textContent=`amostra ${i+1}: ${dt.toFixed(1)} ms (${r.ok?'ok':'falha'})`; }catch(e){ $('#connLog').textContent=`amostra ${i+1}: ERRO ${e}`; } }
+      btn.classList.remove('loading','disabled'); if(!lat.length){$('#c-state').textContent='FALHA';return;}
+      const min=Math.min(...lat),max=Math.max(...lat),avg=lat.reduce((a,b)=>a+b,0)/lat.length, jitter=lat.reduce((a,b)=>a+Math.abs(b-avg),0)/lat.length;
+      $('#c-state').textContent=`OK (${ok}/${samples})`; $('#c-min').textContent=`${min.toFixed(1)} ms`; $('#c-avg').textContent=`${avg.toFixed(1)} ms`; $('#c-max').textContent=`${max.toFixed(1)} ms`; $('#c-jitter').textContent=`${jitter.toFixed(1)} ms`; }
+
+    $('#searchBtn').addEventListener('click', search);
+    $('#pathBtn').addEventListener('click', ()=>drawPath(bfsPath($('#pathA').value, $('#pathB').value)));
+    $('#testConnBtn').addEventListener('click', ()=>testConnection(10));
+    $('#validateBtn').addEventListener('click', runValidate);
+    $('#graph').addEventListener('click', (e)=>{ if(e.target.tagName!=='circle') clearFocus(); });
+
+    health(); loadGraph(); loadMetrics(); loadActivity(); loadGrafana(); testConnection(5);
+    setInterval(()=>{ health(); loadMetrics(); }, 15000);
+  </script>
 </body>
 </html>
