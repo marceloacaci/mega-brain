@@ -19,7 +19,7 @@ Uso:
 import os
 import time
 
-from vault_stats import count_by_dir
+from vault_stats import count_by_dir_cached
 
 # Pastas PARA obrigatorias (indice)
 _PARA = ["00_INBOX", "10_MEGA_BRAIN", "20_DAILY_NOTES", "30_PROJECTS",
@@ -31,9 +31,12 @@ def _count_md(vault):
 
     Reduz duplicacao: _agent_indexer e _agent_metric faziam CADA um o seu
     proprio os.walk do vault inteiro (2 varreduras por run_swarm). Agora delega
-    a vault_stats.count_by_dir (compartilhado com a rota /stats do MCP).
+    a vault_stats.count_by_dir_cached (P11-style: memoiza por mtime/TTL do vault,
+    compartilhado com a rota /stats do MCP) — completa o tema S25-B de o swarm
+    reaproveitar os caches do MCP (mesmo contrato de retorno (total, by_dir)).
     """
-    return count_by_dir(vault)
+    (total, by_dir), _cached = count_by_dir_cached(vault)
+    return total, by_dir
 
 
 def _agent_indexer(vault, query):
