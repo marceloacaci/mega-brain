@@ -32,7 +32,11 @@ _PI = re.compile("|".join(f"(?:{p})" for p in INJECTION_PATTERNS), re.IGNORECASE
 # PII: e-mail, CPF (xxx.xxx.xxx-xx), telefone BR, chaves de API comuns.
 _EMAIL = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 _CPF = re.compile(r"\b\d{3}\.\d{3}\.\d{3}-\d{2}\b")
-_PHONE = re.compile(r"\b(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?9?\d{4}-?\d{4}\b")
+_DDD = r"(?:\+?55\s?)?(?:\(\d{2}\)\s?|\b\d{2}\s)"
+# Celular BR (9 + 8 digitos) com ou sem DDD; fixo (8 digitos) SO com DDD.
+# O '9' obrigatorio (ou o DDD) evita mascarar intervalos numericos tipo "1000-2000".
+_PHONE = re.compile(r"(?<![\w.])(?:" + _DDD + r")?9\d{4}-?\d{4}\b"
+                    r"|(?<![\w.])" + _DDD + r"\d{4}-?\d{4}\b")
 _APIKEY = re.compile(r"\b(?:sk|pk|api[_-]?key|token|bearer)[-_ ]?[A-Za-z0-9]{16,}\b", re.IGNORECASE)
 
 _MASK = "[PII]"

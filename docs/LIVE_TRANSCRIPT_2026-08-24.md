@@ -179,3 +179,25 @@
   Markdown) e `build_graph` continua O(n^2) de CPU (agora em memoria, com limit=600).
 - `python tests/run_all.py` -> **12/12 verdes**.
 - `git fetch` + `git status`: master sincronizado com origin/master antes do commit.
+
+## Iteracao 121-135 — governance.mask_pii: 2 defeitos reais (S11-F)
+
+- AUDITORIA de `governance.py` com script temp (`%TEMP%/hermes-verify-pii.py`),
+  9 casos (positivos + negativos). Dois defeitos REAIS encontrados:
+  1. `tel (11) 91234-5678` -> mascarava como `tel ([PII]` (PARENTESE SOLTO): o
+     `\(?` opcional casava os digitos mas nao o `(`. Vazava a estrutura do dado
+     e a contagem vinha 3 quando havia 4 PII no texto.
+  2. `range 1000-2000 itens` -> mascarado como TELEFONE (falso positivo): o padrao
+     `9?\d{4}-?\d{4}` nao exigia nem DDD nem o 9 de celular, entao qualquer
+     intervalo numerico de 4+4 digitos virava [PII].
+- CORRECAO do `_PHONE`: celular (9 + 8 digitos) com ou sem DDD; fixo (8 digitos)
+  SOMENTE com DDD; `(?<![\w.])` evita casar dentro de versao/hash.
+- VALIDACAO (todos conferidos):
+  * mascara: `(11) 91234-5678`, `11 91234-5678`, `91234-5678`, `+55 11 91234-5678`,
+    `(11) 3123-4567` -> `[PII]` limpo, sem parentese solto.
+  * NAO mascara: `1.0.0`, `porta 8770 e ttl 300`, `commit 2236ac4 de 2026-08-24`,
+    `range 1000-2000`, `porta 8770-8780`, `3123-4567 sem ddd`.
+  * combinado email+CPF+telefone+apikey -> count = **4** (era 3).
+- NOVO `tests/test_governance_pii.py` (**20 checagens**), inclui anti-regressao de
+  injection e de `sanitize_input`.
+- `tests/run_all.py` -> **13/13 verdes**.
