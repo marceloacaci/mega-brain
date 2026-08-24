@@ -312,7 +312,13 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
   total faz o teste FALHAR. `node --check` do JS inline: OK. Tamanho do arquivo: 25003 bytes.
 - `run_all.py`: +1 suíte -> **16/16 verdes** (era 15/15).
 
-### Iter 6 — Pendente
-- Cronograma/sprints em 30_PROJECTS + docs: a fazer.
+### Iter 6 — Documentação: Sprint 12 + cronograma
+- NOVO `docs/sprints/sprint-12.md`: documenta S12-A (traversal em semantic/compress),
+  S12-B (/graph O(n^2) embeddings), S12-C (FCS órfãos), com CA + evidência de testes.
+- `docs/chronogram.md`: seção de status atualizada para 16/16 suítes verdes + S11/S12 + CI.
+- `30_PROJECTS/README.md`: roadmap de engenharia aponta para docs/ (cronograma, sprints, transcript).
+- Próximo: refatorações seguras restantes em módulos.
+
+### Iter 7 — Pendente
 - Refatorações seguras restantes (dedup, O(n^2), alinhamento de contratos) em módulos: a fazer.
 

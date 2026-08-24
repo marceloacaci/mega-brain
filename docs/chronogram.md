@@ -100,13 +100,25 @@ mas o desenvolvimento correu à frente — S1/S2/S3 já implementados.
 **Conclusao**: **100% do escopo M1–M6 + v2.0 + S10 entregue**. v1.0.0 (S1–S8), v2.0.0 (S9),
 v2.1.0 (S10) atingidos em 2026-08-23. Ativação de IA real: `OLLAMA_URL`+`OLLAMA_MODEL`.
 
+### Manutenção autônoma pós-v2.1.0 (S11 + S12)
+- **Sprint 11 — Hardening de Segurança/Performance** (DONE, 2026-08-24): path traversal
+  fechado em 7 rotas, `/graph` 60s→0.36s, `/validate` 15→4 problemas, `mask_pii` corrigido,
+  `compress` contrato de tokens, remoção de 1 os.walk redundante em `/validate` e `run_swarm`.
+  Suítes: **14/14 verdes** (era 10/10).
+- **Sprint 12 — Hardening v2.0** (DONE, 2026-08-24): traversal confinado em `semantic`/`compress`
+  (rotas `/related`+`/compress` → 400); `/graph` embeddings sem O(n²); painel de Órfãos do
+  dashboard por wikilink (FCS no browser). Suítes: **16/16 verdes** (era 14/14). CI canônica
+  5/5 jobs `success` nos commits `6af556e` e `60c1c31`.
+
 ### Cobertura de testes (inegociavel do `docs/quality.md`)
-- Suíte completa (`tests/run_all.py`): **10/10 suítes verdes**
-- Smoke MCP: **8/8 PASS** · E2E validação M4: **2/2** · E2E v2.0: **5/5** ·
+- Suíte completa (`tests/run_all.py`): **16/16 suítes verdes**
+- Smoke MCP: **8/8** · Debounce: **4/4** · E2E validação M4: **2/2** · E2E v2.0: **5/5** ·
   E2E Ollama S10-A: **SKIP** (offline) · E2E Dashboard S10-B: **PASS** ·
-  E2E Governanca S10-C: **PASS** · E2E integração: **3/3** · E2E resiliência: **3/3** · E2E hooks: **4/4** · Debounce: **4/4**
-- CI: `ci-cd.yml` roda lint + SAST + test-linux (smoke+e2e_validate+debounce+e2e_v2+
-  e2e_ollama+e2e_dashboard+e2e_governance+**run_all**) + test-windows (E2E hooks+backup) + build Docker.
+  E2E Governanca S10-C: **PASS** · E2E Seguranca S11: **5/5** · E2E integração: **3/3** ·
+  E2E resiliência M5: **3/3** · E2E hooks: **4/4** · Unidade validate links S11: **6/6** ·
+  Unidade governance PII S11: **20/20** · Unidade compress contrato S11: **22/22** ·
+  Unidade segurança v2 S12: **7/7** · Unidade dashboard orfãos S12: **4/4**
+- CI: `ci-cd.yml` roda lint + SAST + test-linux (run_all) + test-windows (E2E hooks+backup) + build Docker.
 
 [[gantt]]
 
