@@ -295,7 +295,24 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
   detecta `per-note=True` (teste FALHARIA). Fixado -> 7/7.
 - `run_all.py`: +1 suíte -> **15/15 verdes** (era 14/14).
 
-### Iter 5 — Pendente/FCS
-- FCS do dashboard no browser (P10–P14): a fazer neste worker.
+### Iter 5 — FCS do dashboard no browser (P10–P14) + fix de órfão
+- SETUP: subi MCP (porta 8773) + http.server (8783) num fixture de 4 notas (1 órfão
+  estrutural 'Orfao') e abri `web/dashboard.html?mcp=...` no browser.
+- FCS (asserts via browser_console): `loadGraph` OK (4 nos/8 arestas); `bfsPath('Nota A','Nota C')`
+  achou caminho; `focusNode`/`clearFocus` OK; `search()` usa `data.hits` (contrato P13 OK,
+  1 resultado para "parcelas"); `runValidate()` OK (2 link_quebrado no fixture); `loadActivity` OK.
+- DEFEITO REAL achado no FCS: painel **Notas Órfãs mostrava sempre "nenhuma"** — porque
+  `renderOrphans` contava o grau TOTAL do grafo, e arestas `semantic` conectam quase tudo
+  por sobreposição de tokens, então nada ficava em grau 0. O painel era inútil.
+- FIX: `renderOrphans` agora conta apenas arestas `kind=='wikilink'` (órfãos estruturais =
+  notas que ninguém linka). Validado no browser: painel passou a mostrar "• Orfao".
+- PROVA anti-tautologia: reverti p/ grau total no browser -> Orfao some (confirmado).
+- NOVO `tests/test_dashboard_orphans.py` (**4 checagens**): EXTRAI a função `renderOrphans`
+  DO dashboard.html e roda no node contra grafo fixture (não reimplementa). Reverter p/ grau
+  total faz o teste FALHAR. `node --check` do JS inline: OK. Tamanho do arquivo: 25003 bytes.
+- `run_all.py`: +1 suíte -> **16/16 verdes** (era 15/15).
+
+### Iter 6 — Pendente
 - Cronograma/sprints em 30_PROJECTS + docs: a fazer.
+- Refatorações seguras restantes (dedup, O(n^2), alinhamento de contratos) em módulos: a fazer.
 

@@ -301,8 +301,12 @@
     function renderOrphans(g){
       g = g || GRAPH;
       if(!g || !g.nodes){ $('#orphans').innerHTML = '<div>grafo nao carregado</div>'; return; }
+      // Orfãs ESTRUTURAIS: notas sem nenhum wikilink de/para outra nota.
+      // Arestas 'semantic' (Jaccard/embeddings) conectam quase tudo por sobreposicao
+      // de tokens, entao contar o grau total deixaria o painel vazio (sempre 0 orfaos).
+      // O critério útil e o do S10-D: grau 0 em *wikilinks* = nota que ninguem linka.
       const deg={}; g.nodes.forEach(n=>deg[n.id]=0);
-      g.edges.forEach(e=>{ if(deg[e.source]!==undefined)deg[e.source]++; if(deg[e.target]!==undefined)deg[e.target]++; });
+      g.edges.forEach(e=>{ if(e.kind==='wikilink'){ if(deg[e.source]!==undefined)deg[e.source]++; if(deg[e.target]!==undefined)deg[e.target]++; } });
       const orf=g.nodes.filter(n=>deg[n.id]===0).map(n=>n.label||n.id);
       $('#orphans').innerHTML = orf.length ? orf.map(o=>`<div>• ${o}</div>`).join('') : '<div>nenhuma (grafo totalmente conectado)</div>';
     }
