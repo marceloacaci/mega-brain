@@ -73,7 +73,7 @@ LIMIT 10
 - [[MeuBolso]] — - Electron + Node; Vue 3 (views clássicas via `<script>`, `v-html`).
 - `styles.css` + Bootstrap; temas claro/escuro via `[data-theme]`.
 - `icons.js` (`window.ICON`), i18n pt/en/es (`window.I18N`/`t()`).
-- [[pentagon-mind]]
+- [[30_PROJECTS/pentagon-mind/README|pentagon-mind]]
 
 ## 🗂️ MOCs
 ```dataview

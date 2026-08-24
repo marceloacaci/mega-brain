@@ -347,7 +347,7 @@ obsidian_search(query="<palavras-chave>", type="tag", limit=10)
 - ❌ NUNCA responda "vou buscar" — apenas busque e responda.
 - ❌ NUNCA invente informações — se não encontrar, diga "Não encontrei referência no cérebro para isso".
 - ✅ SEMPRE cite a fonte original.
-- ✅ Se encontrar padrão relevante, mencione: "Isso é similar ao padrão [[nome]] (usado N vezes)".
+- ✅ Se encontrar padrão relevante, mencione: "Isso é similar ao padrão `[[nome]]` (usado N vezes)".
 
 ## Exemplo de saída
 ```
