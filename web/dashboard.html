@@ -103,7 +103,7 @@
       <div class="ten wide column">
         <div style="display:flex; align-items:center; justify-content:space-between;">
           <h3 class="ui header inverted">Grafo de Conhecimento</h3>
-          <span class="ui small text" style="color:var(--muted)">clique num nó = Modo Foco</span>
+          <span class="ui small text" style="color:var(--muted)">clique num nó = Modo Foco + Backlinks/Links</span>
         </div>
         <svg id="graph" width="100%"></svg>
         <div class="legend">
@@ -213,6 +213,14 @@
         </div>
 
         <div class="panel">
+          <h4 class="ui header"><i class="share icon"></i> Links de Saída (para onde a nota aponta)</h4>
+          <div style="display:flex; gap:0.4em; margin-bottom:0.6em;">
+            <input id="lkPath" placeholder="ex.: 10_MEGA_BRAIN/Nota.md" style="flex:1; padding:0.4em; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--txt);">
+            <button class="ui button action" id="lkBtn"><i class="search icon"></i> Ver</button>
+          </div>
+          <div id="lkOut" style="max-height:220px; overflow:auto; color:var(--muted);">informe o caminho de uma nota (ou clique num nó do grafo)</div>
+        </div>
+
           <h4 class="ui header"><i class="unlinkify icon"></i> Órfãs de Entrada (ninguém as linka)</h4>
           <button class="ui button action" id="orphInBtn"><i class="refresh icon"></i> Recalcular</button>
           <div id="orphInOut" style="max-height:220px; overflow:auto; color:var(--muted); margin-top:0.6em;">carregando…</div>
@@ -268,7 +276,12 @@
         t.textContent=(n.label||n.id).slice(0,22);
         svg.appendChild(c); svg.appendChild(t);
         c.addEventListener('mouseenter',ev=>showTip(ev,n)); c.addEventListener('mousemove',moveTip); c.addEventListener('mouseleave',hideTip);
-        c.addEventListener('click',()=>focusNode(n.id));
+        // S17-C: clique no no' = Modo Foco + carrega Backlinks e Links de saida DAQUELA
+        // nota. `n.id` e' o caminho relativo (contrato do /graph), exatamente o que
+        // /backlinks e /links esperam em ?path= — sem mapeamento extra.
+        c.addEventListener('click',()=>{ focusNode(n.id);
+          if(typeof loadBacklinks==='function') loadBacklinks(n.id);
+          if(typeof loadLinks==='function') loadLinks(n.id); });
       });
     }
 
@@ -437,6 +450,36 @@
     }
     $('#blBtn').addEventListener('click', ()=>loadBacklinks());
     $('#blPath').addEventListener('keydown', (e)=>{ if(e.key==='Enter') loadBacklinks(); });
+
+    // S20: links de SAIDA — para onde a nota aponta. Contrato do MCP: /links?path=
+    // retorna {path, title, total, links:[{target, resolved, note, title, count}], cached}
+    // e 400 (path invalido/ausente) ou 404 (nota inexistente).
+    async function loadLinks(p){
+      const rel = (p !== undefined ? p : $('#lkPath').value || '').trim();
+      const out = $('#lkOut');
+      if(!rel){ out.innerHTML = '<span style="color:var(--muted)">informe o caminho de uma nota</span>'; return; }
+      if(p !== undefined) $('#lkPath').value = rel;
+      out.innerHTML = '<span style="color:var(--muted)">carregando…</span>';
+      try{
+        const r = await fetch(`${MCP}/links?path=${encodeURIComponent(rel)}`);
+        const data = await r.json();
+        if(!r.ok){ out.innerHTML = `<span style="color:var(--muted)">${data.error || 'erro '+r.status}</span>`; return; }
+        const lk = (data.links || []);
+        if(!lk.length){ out.innerHTML = `<span style="color:var(--muted)"><b>${data.title || rel}</b> não aponta para nenhuma nota (ou só auto-link)</span>`; return; }
+        out.innerHTML = `<div style="margin-bottom:0.4em; color:var(--txt);"><b>${data.title || rel}</b> aponta para <b>${data.total}</b> nota(s):</div>`
+          + lk.map(x=>{
+              const tgt = x.title || x.note || x.target;
+              const cls = x.resolved ? 'color:var(--accent); cursor:pointer;' : 'color:var(--danger);';
+              const act = x.resolved ? `onclick='loadBacklinks("${x.note.replace(/"/g, '\\"')}")'` : '';
+              const tag = x.resolved ? '' : ' <span style="color:var(--danger); font-size:0.8em;">[quebrado]</span>';
+              return `<div style="padding:0.3em 0; border-bottom:1px solid var(--border);">`
+                + `<span style="${cls}" ${act}>${tgt}</span>`
+                + ` <span style="color:var(--muted); font-size:0.85em;">${x.note || x.target} · ${x.count}×</span>${tag}</div>`;
+            }).join('');
+      }catch(e){ out.innerHTML = '<span style="color:var(--muted)">links indisponível</span>'; }
+    }
+    $('#lkBtn').addEventListener('click', ()=>loadLinks());
+    $('#lkPath').addEventListener('keydown', (e)=>{ if(e.key==='Enter') loadLinks(); });
 
     // S17-B: orfas de ENTRADA. Contrato: /orphans-in -> {total_notas, total_orfas,
     // orphans:[{path,title}], cached}. Diferente do painel "Notas Órfãs" (grau 0 no
