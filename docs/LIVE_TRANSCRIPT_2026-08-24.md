@@ -117,3 +117,31 @@
 - NOTA: `web/dashboard.html` esta sendo editado tambem por um agente irmao; mantive
   a alteracao MINIMA e cirurgica (3 linhas) para evitar conflito.
 - NOTA: servidores em 8774/8784 deixados VIVOS (regra de seguranca: nao matar processos).
+
+## Iteracao 86-100 — validate_vault: falsos positivos + 2x os.walk (S11)
+
+- DIAGNOSTICO contra o vault REAL: `/validate` reportava 15 problemas, dos quais
+  **12 eram link_quebrado** — e 11 deles eram FALSOS POSITIVOS:
+  * `[[Projeto X]]`, `[[nota1]]`, `[[links]]` etc. estao dentro de blocos ``` ou
+    de inline-code em `PROMPT_MESTRE_v2.md`/`docs/` — sao EXEMPLOS de documentacao.
+    Confirmado por script que rastreia o estado de fence linha-a-linha (linha 355
+    `dentro_de_fence=True`).
+  * `[[${app.metadataCache.fileToLinktext(...)}]]` nos scripts do Excalidraw sao
+    PLACEHOLDERS de template, nunca notas.
+  * `[[Projeto X]]` aparecia 2x na mesma nota -> 2 problemas identicos (ruido).
+- CORRECOES em `validate_vault.py`:
+  1. `_strip_code()` remove ```/~~~/`inline` antes de procurar wikilinks.
+  2. Placeholders (`${...}`, `{{...}}`) ignorados.
+  3. `[[pasta/Nota]]` resolve pelo BASENAME (e o que o Obsidian faz) — antes era
+     reportado como quebrado.
+  4. Dedupe por alvo dentro da mesma nota.
+  5. PERF: `_note_names(root, notes)` reusa a lista ja coletada -> elimina o
+     SEGUNDO `os.walk` do vault inteiro por chamada de /validate (era 2x I/O).
+- RESULTADO no vault real: 15 -> **4 problemas** (3 notas vazias reais +
+  1 link quebrado REAL `[[pentagon-mind]]`). Sinal limpo, sem perder deteccao.
+- ANTI-REGRESSAO: `tests/e2e_validate.py` continua PASS (detecta `[[NotaInexistente]]`
+  de verdade) => nao suprimi demais.
+- NOVO `tests/test_validate_links.py` (6 checagens de unidade): subpath NAO e falso
+  positivo / codigo ignorado / template ignorado / link inexistente AINDA reportado /
+  dedupe 1x / total_notas correto.
+- `tests/run_all.py` -> **12/12 verdes**.

@@ -44,11 +44,21 @@ def _frontmatter(txt):
     return None
 
 
-def _note_names(root):
-    names = set()
-    for p in _all_md(root):
-        names.add(os.path.splitext(os.path.basename(p))[0].lower())
-    return names
+def _note_names(root, notes=None):
+    """Nomes (stem, lowercase) das notas. Aceita `notes` ja coletado para
+    evitar um segundo os.walk do vault inteiro (era 2x I/O por /validate)."""
+    if notes is None:
+        notes = _all_md(root)
+    return set(os.path.splitext(os.path.basename(p))[0].lower() for p in notes)
+
+
+# Blocos de codigo/inline-code: wikilinks dentro deles sao exemplo/template,
+# nao links reais (ex.: scripts do Excalidraw com `[[${app.metadataCache...}]]`).
+_CODE_BLOCK_RE = re.compile(r"```.*?```|~~~.*?~~~|`[^`\n]*`", re.DOTALL)
+
+
+def _strip_code(txt):
+    return _CODE_BLOCK_RE.sub("", txt)
 
 
 def validate(vault):
@@ -62,7 +72,7 @@ def validate(vault):
 
     notes = _all_md(vault)
     total = len(notes)
-    names = _note_names(vault)
+    names = _note_names(vault, notes)  # reusa a varredura (sem 2o os.walk)
 
     for p in notes:
         rel = os.path.relpath(p, vault).replace("\\", "/")
@@ -80,9 +90,16 @@ def validate(vault):
                 problems.append({"tipo": "moc_sem_tags", "path": rel,
                                  "msg": "MOC sem 'tags' no frontmatter"})
         # 3. Links quebrados (apenas para notas com frontmatter valido ou corpo)
-        for m in re.findall(r"\[\[([^\]]+)\]\]", txt):
-            target = m.split("|")[0].split("#")[0].strip().lower()
-            if target and target not in names:
+        vistos = set()
+        for m in re.findall(r"\[\[([^\]]+)\]\]", _strip_code(txt)):
+            # aceita [[pasta/Nota]] (Obsidian resolve pelo basename)
+            target = m.split("|")[0].split("#")[0].strip().replace("\\", "/")
+            target = target.rsplit("/", 1)[-1].strip().lower()
+            # ignora placeholders de template (${...}, {{...}})
+            if not target or "${" in m or "{{" in m:
+                continue
+            if target not in names and target not in vistos:
+                vistos.add(target)
                 problems.append({"tipo": "link_quebrado", "path": rel,
                                  "msg": f"[[{m}]] aponta para nota inexistente"})
 
