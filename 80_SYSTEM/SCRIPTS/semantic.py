@@ -17,7 +17,7 @@ import re
 import threading
 import time
 
-from constants import NOTE_LIMIT
+from constants import NOTE_LIMIT, VAULT_SKIP_DIRS
 from vault_path import vault_path as _vault_path_impl, VaultPathError
 
 
@@ -82,9 +82,17 @@ def _cosine(a, b):
 
 
 def _vault_notes(vault, limit=NOTE_LIMIT):
-    """Gera (rel_path, text) das notas .md (limit p/ performance)."""
+    """Gera (rel_path, text) das notas .md (limit p/ performance).
+
+    Ignora VAULT_SKIP_DIRS (tests/, .git, etc.) — o repo MEGA BRAIN E o vault,
+    entao varrer tests/fixture/*.md como nota corromperia /suggest e /related.
+    """
     out = []
-    for root, _, files in os.walk(vault):
+    for root, dirs, files in os.walk(vault):
+        parts = set(os.path.basename(root).split(os.sep))
+        if parts & VAULT_SKIP_DIRS:
+            dirs[:] = []
+            continue
         if ".obsidian" in root:
             continue
         for f in files:
@@ -172,10 +180,18 @@ def suggest(vault, query, k=5, limit=NOTE_LIMIT):
 # acoplar a outros modulos (cada modulo mantem o seu — ver tags.py).
 # ---------------------------------------------------------------------------
 def _vault_mtime_signature(vault):
-    """Retorna (mtime_max, contagem) das notas .md — usado p/ invalidar cache."""
+    """Retorna (mtime_max, contagem) das notas .md — usado p/ invalidar cache.
+
+    Ignora VAULT_SKIP_DIRS para que a assinatura de cache nao mude quando
+    arquivos de tests/ mudam (o repo E o vault).
+    """
     newest = 0.0
     count = 0
-    for root, _, files in os.walk(vault):
+    for root, dirs, files in os.walk(vault):
+        parts = set(os.path.basename(root).split(os.sep))
+        if parts & VAULT_SKIP_DIRS:
+            dirs[:] = []
+            continue
         if ".obsidian" in root or ".trash" in root:
             continue
         for f in files:

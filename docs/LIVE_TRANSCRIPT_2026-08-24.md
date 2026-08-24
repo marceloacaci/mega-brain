@@ -678,3 +678,40 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
   push autorizado. Escopo isolado: nao toquei em PROMPT_MESTRE_v2.md nem em
   arquivos de outros workers (comitei apenas o que produzi/ajustei nesta sessao).
 \n## Worker 6 — Sprint 23: orfas agregadas por pasta (by_dir) + cap na UI\n\n### O achado (metodo do P16: rodar contra o VAULT REAL, nao fixture)\nRodei `orphans_in()` contra o vault real: **317 orfas de 374 notas (85%)** em 0,36s.\nDois problemas que NENHUM teste de fixture pegaria:\n1. **UI inutilizavel** — o painel despejava 317 linhas.\n2. **Numero enganoso** — 85% de orfas parecia um vault doente.\nAo agregar por pasta, a historia real apareceu:\n`50_METRICS: 266`, `docs: 13`, `80_SYSTEM: 10`, `30_PROJECTS: 9`, `20_DAILY_NOTES: 4`,\nresto <=2. Ou seja: **266 das 317 sao notas AUTO-GERADAS de metricas**, que por natureza\nninguem linka. O grafo de conhecimento *de verdade* tem ~51 orfas, nao 317 — e essas 51 sim\nsao acionaveis.\n\n### Entregas\n- `orphans_in()` passa a devolver `by_dir {pasta-raiz: n}` na MESMA passada O(n) (custo zero).\n- Dashboard: resumo por pasta ordenado desc + percentual no cabecalho + lista limitada a\n  `ORPH_CAP = 40` com rodape "… e mais N orfa(s); veja o resumo por pasta acima".\n- Testes: `soma(by_dir) == total_orfas`, sem contagem zero, pasta da 1a orfa presente.\n- `docs/api-reference.md` e `tests/e2e_api_contract.py` atualizados com `by_dir` — a\n  suite de contrato do S21 JA cobriu essa mudanca automaticamente (era exatamente o\n  objetivo dela: doc e codigo nao divergirem em silencio).\n\n### `node --check` PEGOU O SEGUNDO BUG REAL DO DIA\nAo validar o JS, rc=1: `SyntaxError: Identifier 'orph' has already been declared` —\n`const orph = (data.orphans || []);` **duplicado**, resultado de dois workers editando\n`loadOrphansIn()` ao mesmo tempo. Quebraria TODO o dashboard (script inline unico) e\npassaria pelo CI (P13). Deduplicado; re-check rc=0.\n\n### Verificacao de fato (FCS no VAULT REAL, MCP 8910)\n- `soma(by_dir) = 317 == total_orfas` (confere via HTTP).\n- Painel: cabecalho "317 de 374 notas nao recebem nenhum wikilink (85%)";\n  resumo comecando por "50_METRICS: 266"; **40** linhas renderizadas (nao 317);\n  rodape "… e mais 277 orfa(s)"; 40 spans clicaveis para drill-down em Backlinks.\n- `node --check` rc=0; `run_all` **33/33 verdes**; commit `7b71205` pushado.\n\n### Coordenacao\nSegunda vez que uma edicao minha colidiu com o worker irmao no `dashboard.html` (P25).\nConfirmei com `grep` que `S23`/`ORPH_CAP`/`by_dir` sobreviveram antes de commitar.\nNenhum processo/servidor foi morto.\n
+## Worker continuation (2026-08-24) — S23 verificacao + S24: VAULT_SKIP_DIRS
+
+### S23 (ja' entregue por worker irmao 7b71205/97b8745) — verificacao e FCS
+- `git status` inicial: 33/33 verdes (HEAD==origin/master). Havia trabalho em
+  curso de irmao: `backlinks.py` (by_dir), `tests/test_backlinks.py` (S23) e
+  `web/dashboard.html` (render by_dir) — e JA' estavam comitados (7b71205).
+- FCS no browser (portas frescas 22335/22336, fixture 6 notas/1 orfa): painel
+  'Orfas de Entrada' renderiza resumo por pasta ('5 de 6... 10_MEGA_BRAIN: 4 /
+  70_MOCS: 1') + lista capada. `node --check` do <script> inline: rc=0.
+  Confirmei a implementacao do irmao esta' CORRETA e sem JS errors — nao criei
+  commit redundante (working tree == HEAD apos o pull/estado).
+
+### S24 (NOVO): VAULT_SKIP_DIRS exclui pastas nao-nota das varreduras
+- DEFEITO REAL (P16 method: rodei reason() contra o vault real e olhei a saida):
+  `llm_local.reason()` sugeria `tests/fixture/70_MOCS/MOC_Teste.md` — porque o
+  repo MEGA BRAIN E o vault, e `_vault_notes`/`_vault_signature`/`_iter_notes`
+  varriam `tests/` como se fossem notas de conteudo. Corrompia /suggest,
+  /related, /graph e as assinaturas de cache.
+- CORRECAO: centralizei `VAULT_SKIP_DIRS` em `constants.py` (.obsidian, .trash,
+  .git, tests, node_modules, __pycache__, .claudian, .hypernovum, .makemd,
+  .space) e apliquei em `semantic._vault_notes`, `semantic._vault_mtime_signature`,
+  `graph._vault_signature`, `graph._iter_notes` (com `dirs[:]=[]` no walk p/ poda
+  real). Corrigi import em graph.py (usava VAULT_SKIP_DIRS mas so' importava
+  NOTE_LIMIT — NameError em runtime).
+- VERIFICACAO: `reason('...')` agora sugere `70_MOCS/MOC_web.md`,
+  `50_METRICS/...` (notas reais), `tests/` ausente.
+- TESTE anti-regressao NAO-tautologico `tests/test_vault_skip_dirs.py` (S24):
+  cria vault com nota de conteudo + tests/ + node_modules/, confirma que
+  _vault_notes/suggest/_vault_signature/graph._vault_signature EXCLUEM os dirs
+  proibidos; INJETA a regressao (esvazia VAULT_SKIP_DIRS) e confirma que os dirs
+  proibidos REAPARECEM (senao o teste falha como tautologico). Registrado em
+  run_all.py.
+- `python tests/run_all.py` -> **34/34 suítes verdes** (era 33; +S24).
+- REGRAS: nao matei processos/servidores (deixei zombies de FCS rodando); nao
+  comitei os 264 snapshots 50_METRICS/* (artefatos gerados do reindex); push
+  autorizado. Proximo alvo seguro: auditar watcher.py / reindex_hybrid.ps1 ou
+  documentar cronograma 30_PROJECTS.

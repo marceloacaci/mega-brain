@@ -9,7 +9,7 @@ import re
 import time
 import threading
 
-from constants import NOTE_LIMIT
+from constants import NOTE_LIMIT, VAULT_SKIP_DIRS
 
 WIKILINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
@@ -24,10 +24,17 @@ _GRAPH_LOCK = threading.Lock()
 
 
 def _vault_signature(vault, limit=NOTE_LIMIT):
-    """Retorna (mtime_max, contagem) das notas .md — usado p/ invalidar cache."""
+    """Retorna (mtime_max, contagem) das notas .md — usado p/ invalidar cache.
+
+    Ignora VAULT_SKIP_DIRS (tests/, .git, etc.) — o repo MEGA BRAIN E o vault.
+    """
     newest = 0.0
     count = 0
-    for root, _, files in os.walk(vault):
+    for root, dirs, files in os.walk(vault):
+        parts = set(os.path.basename(root).split(os.sep))
+        if parts & VAULT_SKIP_DIRS:
+            dirs[:] = []
+            continue
         if ".obsidian" in root or ".trash" in root:
             continue
         for f in files:
@@ -76,8 +83,13 @@ def _folder_type(rel):
 
 
 def _iter_notes(vault, limit=NOTE_LIMIT):
+    """Itera (rel_path, text) das notas .md. Ignora VAULT_SKIP_DIRS."""
     count = 0
-    for root, _, files in os.walk(vault):
+    for root, dirs, files in os.walk(vault):
+        parts = set(os.path.basename(root).split(os.sep))
+        if parts & VAULT_SKIP_DIRS:
+            dirs[:] = []
+            continue
         if ".obsidian" in root or ".trash" in root:
             continue
         for f in files:
