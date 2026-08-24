@@ -63,6 +63,7 @@ from swarm import run_swarm  # noqa: E402
 from llm_local import reason  # noqa: E402
 from graph import build_graph_cached  # noqa: E402
 from recent import recent_notes, recent_notes_cached  # noqa: E402
+from activity import activity_cached  # noqa: E402
 from tags import tag_counts, tag_counts_cached  # noqa: E402
 from backlinks import backlinks, backlinks_cached, orphans_in_cached, links_cached  # noqa: E402
 
@@ -432,21 +433,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send({"error": f"links failed: {e}"}, 500)
         if u.path == "/activity":
             # Heatmap de atividade: conta notas diarias (20_DAILY_NOTES) por data.
+            # S22: cache por mtime/TTL (padrao S14/S15) evita re-varredura a cada poll.
             try:
-                daily_dir = None
-                for d in os.listdir(VAULT):
-                    if d.upper().startswith("20_DAILY") or d.upper().startswith("20_DAILY_NOTES"):
-                        daily_dir = os.path.join(VAULT, d)
-                        break
-                counts = {}
-                if daily_dir and os.path.isdir(daily_dir):
-                    for f in os.listdir(daily_dir):
-                        m = re.match(r"(\d{4}-\d{2}-\d{2})", f)
-                        if m:
-                            counts[m.group(1)] = counts.get(m.group(1), 0) + 1
                 with _METRICS_LOCK:
                     _METRICS["mcp_requests_total"] += 1
-                return self._send({"daily_dir": daily_dir or "(ausente)", "by_date": counts})
+                (daily_dir, by_date), was_cached = activity_cached(VAULT, ttl=_CACHE_TTL)
+                return self._send({"daily_dir": daily_dir, "by_date": by_date,
+                                   "cached": was_cached})
             except Exception as e:
                 return self._send({"error": f"activity failed: {e}"}, 500)
         # ---- v2.0 rotas de inovação (com fallback heurístico) ----

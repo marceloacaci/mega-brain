@@ -48,7 +48,7 @@ SUITE = [
     ("Unidade cache atividade S22 (heatmap mtime/TTL)", ["python", "tests/test_activity_cache.py"]),
     ("Unidade cache semantico S19 (related+suggest)", ["python", "tests/test_semantic_cache.py"]),
     ("E2E cache semantico S19 (rotas /related+/suggest)", ["python", "tests/e2e_semantic_cache.py"]),
-    ("E2E integração (fluxo fim-a-fim)", ["python", "tests/e2e_integration.py"]),
+    ("E2E contrato de API S21 (doc vs MCP real)", ["python", "tests/e2e_api_contract.py"]),
     ("E2E integração (fluxo fim-a-fim)", ["python", "tests/e2e_integration.py"]),
 ]
 if not IN_CI:

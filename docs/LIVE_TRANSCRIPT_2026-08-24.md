@@ -649,3 +649,31 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
   Meu commit restringe-se a: S17(backlinks) ja pushado, S19(semantic cache) ja pushado,
   S20(/links API+tests+dashboard+FCS) ja pushado, e este ajuste de doc.
 \n## Worker 6 — Sprint 21: docs/api-reference.md + teste de contrato de API\n\n- Lacuna: o MCP ja' expunha **25 rotas** e NAO havia nenhuma referencia consolidada.\n  Consequencia real (P13): clientes (dashboard, agente) erravam o nome da chave — o bug\n  do `data.results` vs `hits` passou verde no CI e so' apareceu no FCS.\n- Criado `docs/api-reference.md` **DERIVADO DO CODIGO**, nao de memoria: extrai as chamadas\n  `self._send(...)` e `parse_qs(...)` reais de cada rota via script, e documenta query\n  params, chaves de resposta, status codes, flag `cached` e as convencoes de path.\n  Secoes: Leitura&busca, Grafo&conexoes, Governanca&telemetria, v2.0 (IA), Escrita (POST),\n  + checklist final "ao consumir o MCP".\n- Armadilhas explicitadas no doc: `/search` -> `hits` (NAO `results`) com `ctx` (NAO\n  `snippet`); `/metrics` e' TEXTO Prometheus (nao JSON); `graph.nodes[].id` JA E' o\n  caminho relativo aceito por `/backlinks` e `/links`; traversal -> `/read` 404 mas\n  `/backlinks`/`/links` 400.\n- Criado `tests/e2e_api_contract.py` (S21) como **guard-rail contra doc mentirosa**:\n  sobe MCP num fixture e valida 12 rotas GET (status + chaves obrigatorias + a rota\n  estar MENCIONADA no doc), `/metrics` como texto, `hits`/`ctx`, reuso do\n  `graph.nodes[].id` em `/backlinks`, `404 unknown endpoint` e os 5 casos de\n  traversal/path-ausente. Registrado no `run_all`.\n- **Prova de nao-tautologia:** injetei a regressao `"hits"` -> `"results"` no\n  `mcp_obsidian_server.py` e a suite acusou **3 FALHAS**; restaurei o arquivo e voltou a\n  verde. O teste tem valor real, nao e' decorativo.\n- `README.md` agora aponta para a referencia como primeira leitura de quem consome o MCP.\n- `python tests/run_all.py`: **32/32 suites verdes** (era 31). Commit `72a1ed5` pushado.\n- Verificacao ad-hoc: script temp validou 33 asserts contra o MCP real ANTES de eu\n  promover a checagem a teste permanente; temps removidos ao fim (Principio 3).\n
+
+## Worker continuation (2026-08-24) — Sprint 22: cache de /activity (heatmap) + integracao S21
+
+- Sprint 22 (S22): `/activity` (heatmap de notas diarias) agora usa cache por
+  mtime/TTL, fechando a cobertura de cache de TODAS as rotas de leitura (stats,
+  recent, tags, backlinks, links, related, suggest, validate, graph, activity).
+  - `activity.py` NOVO: `activity_counts(vault)` (pura, conta 20_DAILY_NOTES por
+    data, retorna (daily_dir, by_date)) + `activity_cached(vault, ttl)` com
+    `_vault_mtime_signature()` e cache thread-safe (padrao P11/S14/S15).
+  - `mcp_obsidian_server.py`: rota `/activity` consome `activity_cached` e expoe
+    flag `cached`; import adicionado. `re` deixou de ser usado no trecho (agora
+    em activity.py) — sem erro (ainda usado em outras rotas).
+  - `tests/test_activity_cache.py` (9 asserts): miss->hit->invalida ao tocar .md,
+    ttl=0 forca miss, sem dir diario -> '(ausente)'.
+- Integracao colaborativa: o worker irmao `sa-0-97c35da0` registrou
+  `tests/e2e_api_contract.py` (S21, porta 8909) no `run_all.py` — guard-rail que
+  valida o contrato documentado em `docs/api-reference.md` contra o MCP real
+  (12 rotas, `hits`!=`results`, `ctx`!=`snippet`, traversal 400/404, etc). Ele
+  passa e VALIDA meu S20 (/links, /backlinks) e S19 (/related+/suggest cached).
+  Ao editar o run_all, restaurei essa linha S21 que minha edicao anterior tinha
+  removido por engano (conflito de edicao concorrente) — sem duplicar a entrada
+  de integracao.
+- `python tests/run_all.py`: **33/33 suites verdes** (era 31; +activity_cache
+  +api_contract), estavel em 3 execucoes. CI Linux reportara 31/31 (pula
+  e2e_backup/e2e_hooks), igualmente verde.
+- Regras respeitadas: nenhum processo/servidor do usuario morto; backup intacto;
+  push autorizado. Escopo isolado: nao toquei em PROMPT_MESTRE_v2.md nem em
+  arquivos de outros workers (comitei apenas o que produzi/ajustei nesta sessao).
