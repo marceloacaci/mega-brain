@@ -63,5 +63,41 @@ backlinks dela. Erros 400/404 exibem `data.error` em vez de falhar silenciosamen
 
 ## Próximos passos sugeridos
 - Ligar o painel de backlinks ao clique nos nós do grafo (hoje é drill-down por lista).
-- Endpoint `/orphans-in` (notas sem nenhum backlink) reusando `backlinks.py`.
 - Cachear `/stats`, seguindo o mesmo padrão de invalidação por mtime.
+
+---
+
+# Sprint 17-B — `/orphans-in` (órfãs de entrada) — CONCLUÍDO (2026-08-24)
+
+## Objetivo
+Expor **"quais notas ninguém linka"**. Distinto do painel *Notas Órfãs (grau 0)*, que usa
+o `/graph` e considera links de **saída** + arestas semânticas: aqui é estritamente
+"nenhum wikilink aponta para ela" — o sinal real de nota invisível no vault.
+
+## Entregas
+- `orphans_in(vault, limit)` → `{total_notas, total_orfas, orphans:[{path,title}]}`,
+  em **UMA passada O(n)** (índice de nomes + set de alvos linkados).
+  Chamar `backlinks()` por nota seria O(n²) de I/O — o defeito que fez `/graph` levar 60s
+  no vault real (P16.2). Auto-link **não** remove a nota da lista; wikilink em bloco de
+  código não conta.
+- `orphans_in_cached()` — invalidação por assinatura de mtime do vault OU TTL.
+- Rota `GET /orphans-in` → 200 com flag `cached`; 500 legível via try/except (P8).
+- Dashboard: painel **"Órfãs de Entrada (ninguém as linka)"** com botão *Recalcular* e
+  **drill-down cruzado** (clicar numa órfã carrega o painel Backlinks dela).
+- Testes: `test_backlinks.py` 17 → **28 asserts** (inclui guard de performance:
+  `orphans_in` 0.038s vs 2.351s de 60× `backlinks()` ≈ **62×**);
+  `e2e_backlinks.py` 11 → **18 asserts**. Suíte: **29/29 verdes**.
+
+## Bug crítico corrigido no caminho (achado pelo P7)
+`semantic.py` tinha `_RELATED_LOCK = threading.Lock()` **sem** `import threading` →
+`NameError` no import, derrubando o MCP inteiro e, com ele, toda suíte que sobe o server.
+Só apareceu rápido porque `e2e_backlinks.py` usa `stderr=subprocess.PIPE` e imprime o
+stderr no fracasso do health check (**P7** — nunca use `DEVNULL` aí). Corrigido com o
+import faltante.
+
+## Pitfall reforçado
+Rodar suítes em paralelo com outro worker gera **FAIL transitório por colisão de porta**
+(aqui: `E2E Seguranca S11`, que passa 5/5 standalone). Antes de tratar um FAIL como bug
+real, rode a suíte isolada — foi exatamente o caso do `E2E Dashboard S10-B` reportado no
+handoff, que não se reproduziu.
+
