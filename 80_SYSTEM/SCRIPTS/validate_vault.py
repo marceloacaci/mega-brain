@@ -109,5 +109,6 @@ def validate(vault):
 if __name__ == "__main__":
     import json
     import sys
-    v = sys.argv[1] if len(sys.argv) > 1 else r"D:\Programas (Disco D)\Obsidian\cofres\Marcelo IA Skills"
+    v = sys.argv[1] if len(sys.argv) > 1 else os.path.abspath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
     print(json.dumps(validate(v), ensure_ascii=False, indent=2))
