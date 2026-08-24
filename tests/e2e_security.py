@@ -16,17 +16,28 @@ import subprocess
 import sys
 import tempfile
 import time
+import socket
 import urllib.error
 import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SERVER = os.path.abspath(os.path.join(HERE, "..", "80_SYSTEM", "SCRIPTS",
                                      "mcp_obsidian_server.py"))
-PORT = 8903
-BASE = f"http://127.0.0.1:{PORT}"
+
+
+def _free_port():
+    """Porta alta livre (P5): evita colisao com e2e_backlinks (8903) em run_all."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("127.0.0.1", 0))
+    p = s.getsockname()[1]
+    s.close()
+    return p
 
 PASS = 0
 FAIL = 0
+
+# BASE é definido em main() a partir de uma porta livre (evita colisao P5).
+_BASE = ""
 
 
 def check(name, ok, detail=""):
@@ -41,7 +52,7 @@ def check(name, ok, detail=""):
 
 def get(path):
     try:
-        with urllib.request.urlopen(BASE + path, timeout=10) as r:
+        with urllib.request.urlopen(_BASE + path, timeout=10) as r:
             return r.status, json.loads(r.read().decode())
     except urllib.error.HTTPError as e:
         try:
@@ -52,7 +63,7 @@ def get(path):
 
 def post(path, payload):
     req = urllib.request.Request(
-        BASE + path, data=json.dumps(payload).encode(),
+        _BASE + path, data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=10) as r:
@@ -67,7 +78,7 @@ def post(path, payload):
 def wait_health(proc, tries=200):
     for _ in range(tries):
         try:
-            with urllib.request.urlopen(BASE + "/health", timeout=2) as r:
+            with urllib.request.urlopen(_BASE + "/health", timeout=2) as r:
                 if r.status == 200:
                     return True
         except Exception:
@@ -79,6 +90,9 @@ def wait_health(proc, tries=200):
 
 def main():
     print("=== E2E Seguranca S11 (path traversal) ===")
+    global _BASE
+    port = _free_port()
+    _BASE = f"http://127.0.0.1:{port}"
     outer = tempfile.mkdtemp(prefix="mb_sec_")
     vault = os.path.join(outer, "vault")
     os.makedirs(os.path.join(vault, "10_MEGA_BRAIN"))
@@ -91,7 +105,7 @@ def main():
         fh.write("SEGREDO\n")
 
     proc = subprocess.Popen(
-        [sys.executable, SERVER, "--vault", vault, "--port", str(PORT)],
+        [sys.executable, SERVER, "--vault", vault, "--port", str(port)],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
         if not wait_health(proc):

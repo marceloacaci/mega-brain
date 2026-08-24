@@ -505,3 +505,30 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
   `python tests/run_all.py` -> **29/29 suítes verdes** (recuperado de 27+2 FAIL).
 - py_compile OK. Reaproveitei a descoberta: o `import time` faltante era o unico
   gap; rotas e testes do irmao estavam corretos.
+
+## Worker continuation (2026-08-24, pos-S17) — Sprint 19: cache de /related + /suggest + endurecimento anti-flake
+
+- Estado inicial: 27/27 suites verdes localmente (CI: 25/25; pula e2e_backup/e2e_hooks no Linux). HEAD=origin/master.
+- S17 (backlinks) estava deixado NAO commitado por worker anterior (backlinks.py + testes + painel dashboard +
+  run_all + 50_METRICS). Rodei `python tests/run_all.py` -> 27/27 verdes. Commitei (feat) e pushei: 4b170f3.
+- Sprint 19 (S19) — cache de rotas semanticas (padrao S14/S15/S16/S17):
+  - `semantic.py`: adicionados `related_cached(vault, path, k, limit, ttl)` e `suggest_cached(...)`,
+    cada um com `_vault_mtime_signature()` local (invalida por mtime do vault OU TTL) e dict de cache
+    thread-safe. Chave do cache = (path/query, k, limit) -> caches distintos por parametro.
+  - `mcp_obsidian_server.py`: rota `GET /related` e `GET /suggest` passam a usar as versoes cacheadas e
+    expoem flag `cached` no JSON (miss no 1o acesso, hit no 2o). Import atualizado.
+  - Testes nao-tautologicos (registrados no run_all -> 29 suites):
+    - `tests/test_semantic_cache.py` (12 asserts): miss->hit->invalida ao tocar .md -> ttl=0 forca miss;
+      relacionamento ordenado (B mais proximo de A); query diferente -> outra lista (C topa em "receita bolo").
+    - `tests/e2e_semantic_cache.py`: sobe MCP real (porta fresca), valida /related e /suggest (miss+正向
+      payload + flag cached falso/verdadeiro), e /related com traversal -> 400 (VaultPathError, P16).
+  - Verificado: `python tests/run_all.py` -> 29/29 verdes, estavel em 3 execucoes seguidas.
+- Endurecimento anti-flake (P5/P10): `tests/e2e_security.py` usava PORT=8903 HARDCODED, a MESMA de
+  `tests/e2e_backlinks.py` -> colisao de porta quando o server do worker anterior lingerava (flakiness das
+  suites em run_all). Convertido para `_free_port()` (socket bind 0) como os demais e2e (tags/recent),
+  eliminando a colisao. `e2e_validate.py` (8899/8900) e `e2e_backlinks.py` (8903) ficam isolados.
+  - Confirmado: 3 execucoes de run_all -> 29/29 verdes e estaveis (antes flakeava para 14/29 dependendo do
+    estado dos processos zumbis — sem nunca matar nenhum processo, conforme regra do usuario).
+- `node --check`/lint: semantic.py e mcp server py_compile OK; testes novos py_compile OK.
+- Proximo alvo natural: refatoracao de swarm.py/llm_local.py/governance.py (S20+) ou auditoria de predictive.py.
+- Regras respeitadas: nenhum processo/servidor morto; backup previo intacto; push autorizado.
