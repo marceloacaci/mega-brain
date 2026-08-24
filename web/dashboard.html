@@ -250,12 +250,14 @@
     async function search(){
       const q=$('#q').value.trim(); if(!q) return;
       const r=await fetch(`${MCP}/search?q=${encodeURIComponent(q)}&k=5`); const data=await r.json();
-      const items=(data.results||[]).map(x=>`<div class="item"><div class="content"><div class="header">${x.path}</div><div class="description">${x.snippet||''}</div></div></div>`).join('');
+      // Contrato do MCP: /search retorna 'hits' (nao 'results').
+      const hits=(data.hits||[]);
+      const items=hits.map(x=>`<div class="item"><div class="content"><div class="header">${x.path}</div><div class="description">${x.ctx||x.snippet||''}</div></div></div>`).join('');
       $('#results').innerHTML=items||'<div class="item">sem resultados</div>';
       const ql=q.toLowerCase();
       let any=false;
       document.querySelectorAll('#graph .node').forEach(c=>{ const hit=((c.dataset.label||'')+c.dataset.id).toLowerCase().includes(ql); c.classList.toggle('hl',hit); if(hit)any=true; });
-      $('#status').textContent = any ? `Busca: ${q} destacado no grafo` : `Busca: ${q} sem nó correspondente`;
+      $('#status').textContent = hits.length ? `Busca: ${hits.length} resultado(s) para "${q}"` : `Busca: ${q} sem resultado`;
     }
 
     function bfsPath(a,b){
