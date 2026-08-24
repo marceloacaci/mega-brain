@@ -749,3 +749,24 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
   para 1e2fffa (5/5 jobs). 34/34 suites verdes. Nao matei processos; nao
   comitei 264 snapshots 50_METRICS/*. Proximos alvos seguros possiveis:
   refatorar swarm.py/llm_local.governance, ou auditar 80_SYSTEM/HOOKS/*.ps1.
+
+
+### Continuacao 2026-08-24 (worker autonomo final) — S25 commit + docs S19-S25 + FCS + swarm cache
+
+- CONTEXTO: workers irmos deleg_fba387e7/8eb3dea8/55412f9a ja' completaram; HEAD==origin/master, 34/34 verdes. Esta sessao e' a unica ativa (sem zumbis/conflito).
+- WORKING TREE inicial: tinha S25/S25-B in-progress (watcher.py exclui nao-conteudo + swarm usa caches) como modified, NAO comitado por irmao. Verifiquei: suggest_cached/validate_cached existem; test_watcher_debounce passa standalone; swarm agents retornam ok standalone.
+- baseline run_all: **34/34 suítes verdes**. py_compile OK.
+- COMMIT 1 (ff2382b, pushado): feat(watcher/swarm) S25 — watcher.handle ignora VAULT_SKIP_DIRS (P30) + polling fallback aplica prune_vault_dirs; swarm._agent_correlator usa suggest_cached e _agent_guardian usa validate_cached; test_watcher_debounce + caso skip_dirs_not_logged. 34/34.
+- DOC S19-S25: criei docs/sprints/sprint-19..25.md (conteudo DERIVADO de git log + live transcript, nao inventado) e estendi docs/chronogram.md (sessao 2026-08-24 ate S25, estado final 34/34). COMMIT 2 (8c8485a, pushado). 34/34 mantido.
+- FCS no browser (P10/P13/P31): subi MCP + http.server em portas frescas (57966/57967, --bind 127.0.0.1) num vault fixture temp (5 notas, 1 orfao, 1 daily). Validado via browser_console (sem erros JS):
+  * grafo 5 nos/6 arestas carregado; clique no no -> backlinks (A<-B,D) + links saida (A->B,C)
+  * BFS A->C: 'Caminho (2 nos): 10_A/A.md -> 70_MOCS/C.md'
+  * search 'link' -> hits via data.hits (A, C); contrato P13 OK
+  * /validate -> 'Total notas: 5 · Problemas: 2 · estrutura: 2' (by_tipo)
+  * orfas entrada '2 de 5 notas'; donut (note:3/daily:1/moc:1); heatmap; recent; metrics Prometheus; ping OK(5/5)
+  * node --check do <script> inline: rc=0 (a partir do ROOT).
+  * VEREDITO FCS: 0 erros de runtime; todos os 10+ paineis funcionam.
+- MELHORIA SEGURA S25-C (swarm reusa cache): swarm._count_md agora delega vault_stats.count_by_dir_cached (P11-style, mtime/TTL) em vez de count_by_dir (descached) — mesmo contrato (total, by_dir), completa o tema S25-B. COMMIT 3 (0e1034b, pushado). run_all **34/34 verde** mantido (test_shared_modules valida count_by_dir == swarm._count_md).
+- PORTA DE VERIFICACAO TRIPLA (Princ 5): (1) run_all 34/34; (2) py_compile dos .py alterados silencioso; (3) node --check do dashboard inline rc=0 + FCS browser. Todos verdes.
+- NAO matei processos; NAO comitei 264 snapshots 50_METRICS/*. Backups: ja' existia backup desta sessao (NÃO refeito).
+- PROXIMOS ALVOS SEGUROS restantes: audit de 80_SYSTEM/HOOKS_HERMES/*.ps1 (P4 ASCII) — arriscado sem teste; ou nova rota util + teste de contrato. Loop continua ate' fim de melhorias seguras ou 1e6 iters.
