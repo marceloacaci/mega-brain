@@ -37,13 +37,19 @@ import threading
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 
-VAULT = r"D:\Programas (Disco D)\Obsidian\cofres\Marcelo IA Skills"
+# VAULT default portatil: prefere env MEGABRAIN_VAULT; senao o diretorio pai do
+# repo (este script vive em 80_SYSTEM/SCRIPTS, o vault e o repo raiz). Nao usa
+# caminho hardcoded do dev (anti-padrao P3/P5 — quebrava no runner Linux do CI).
+VAULT_DEFAULT = os.environ.get("MEGABRAIN_VAULT") or os.path.abspath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+VAULT = VAULT_DEFAULT
 
 # Validacao continua do vault (M4 Extensibilidade)
 sys_path = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 if sys_path not in sys.path:
     sys.path.insert(0, sys_path)
 import validate_vault  # noqa: E402
+from vault_stats import count_by_dir  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # v2.0 — Inovação: semântica, compressão, swarm e LLM local (todos opcionais,
@@ -134,26 +140,16 @@ def _metrics_text():
         lines.append(f"mcp_cache_entries {len(_CACHE)}")
     return "\n".join(lines) + "\n"
 
-class VaultPathError(ValueError):
-    """Path recebido tenta sair do vault (path traversal)."""
+# Guard de path compartilhado (vault_path.py). As rotas de escrita (/write etc.)
+# capturam VaultPathError -> 400; as de leitura (/read) -> 404 (see do_GET/do_POST).
+# Mantemos o NOME 'VaultPathError' neste namespace porque o handler verifica
+# `type(e).__name__ == "VaultPathError"` (contrato de teste e2e_security).
+from vault_path import vault_path as _vault_path_impl, VaultPathError  # noqa: E402
 
 
 def _vault_path(rel):
-    """Resolve `rel` DENTRO do vault, recusando path traversal.
-
-    Endurecimento de rota: sem isto, `path=../../../Windows/win.ini` em /read
-    (ou em POST /write) resolvia para fora do vault, permitindo leitura e
-    ESCRITA arbitraria no disco. Levanta VaultPathError se escapar.
-    """
-    rel = (rel or "").replace("\\", "/").strip("/")
-    if not rel:
-        raise VaultPathError("path vazio")
-    base = os.path.abspath(VAULT)
-    fp = os.path.abspath(os.path.join(base, rel))
-    if os.path.normcase(fp) != os.path.normcase(base) and \
-            not os.path.normcase(fp).startswith(os.path.normcase(base) + os.sep):
-        raise VaultPathError("path fora do vault")
-    return fp
+    """Resolve `rel` DENTRO do vault (usa o VAULT corrente), recusando traversal."""
+    return _vault_path_impl(VAULT, rel)
 
 def search(q):
     q = q.lower()
@@ -336,19 +332,8 @@ class Handler(BaseHTTPRequestHandler):
                               else {"error": "not found"}, 404 if c is None else 200)
         if u.path == "/stats":
             # Contagem real de notas .md por pasta-raiz (sem ler o conteúdo).
-            total = 0
-            by_dir = {}
-            for root, _, files in os.walk(VAULT):
-                if ".obsidian" in root:
-                    continue
-                rel_root = os.path.relpath(root, VAULT).replace("\\", "/")
-                md = [f for f in files if f.endswith(".md")]
-                if md:
-                    key = rel_root if rel_root != "." else "(raiz)"
-                    # conta apenas a pasta-raiz de 2 níveis (ex.: 10_MEGA_BRAIN)
-                    top = key.split("/")[0]
-                    by_dir[top] = by_dir.get(top, 0) + len(md)
-                    total += len(md)
+            # Reusa vault_stats.count_by_dir (compartilhado com swarm._count_md).
+            total, by_dir = count_by_dir(VAULT)
             with _METRICS_LOCK:
                 _METRICS["mcp_requests_total"] += 1
                 _METRICS["mcp_notes_total"] = total

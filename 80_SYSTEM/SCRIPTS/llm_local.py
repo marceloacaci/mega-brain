@@ -35,11 +35,6 @@ def _ollama_generate(prompt):
         return None
 
 
-_HEAD_RE = re.compile(r"^#{1,6}\s+(.*)$", re.MULTILINE)
-_LINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
-_TAG_RE = re.compile(r"#([\w-]+)")
-
-
 def _heuristic(prompt, vault=None):
     """Resposta heurística determinística (sem IA externa)."""
     out = []

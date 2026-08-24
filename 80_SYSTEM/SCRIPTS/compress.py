@@ -38,11 +38,6 @@ def _is_heading(line):
     return line.lstrip().startswith("#")
 
 
-def _is_tag(line):
-    s = line.strip()
-    return s.startswith("tags:") or (s.startswith("- #") or " #" in s and s.startswith("-"))
-
-
 def compress_text(text, max_tokens=2000, keep_links=True):
     """Comprime `text` mantendo estrutura relevante.
 

@@ -19,7 +19,9 @@ Uso:
 import os
 import time
 
-# Pastas PARA obrigatórias (índice)
+from vault_stats import count_by_dir
+
+# Pastas PARA obrigatorias (indice)
 _PARA = ["00_INBOX", "10_MEGA_BRAIN", "20_DAILY_NOTES", "30_PROJECTS",
          "40_AREAS", "50_METRICS", "60_RESOURCES", "70_MOCS", "80_SYSTEM", "90_ARCHIVE"]
 
@@ -28,21 +30,10 @@ def _count_md(vault):
     """Uma unica varredura: (total_md, {pasta_raiz: n}).
 
     Reduz duplicacao: _agent_indexer e _agent_metric faziam CADA um o seu
-    proprio os.walk do vault inteiro (2 varreduras por run_swarm).
+    proprio os.walk do vault inteiro (2 varreduras por run_swarm). Agora delega
+    a vault_stats.count_by_dir (compartilhado com a rota /stats do MCP).
     """
-    total = 0
-    by_dir = {}
-    for root, _, files in os.walk(vault):
-        if ".obsidian" in root:
-            continue
-        md = [f for f in files if f.endswith(".md")]
-        if not md:
-            continue
-        rel = os.path.relpath(root, vault).replace("\\", "/")
-        top = rel.split("/")[0] if rel != "." else "(raiz)"
-        by_dir[top] = by_dir.get(top, 0) + len(md)
-        total += len(md)
-    return total, by_dir
+    return count_by_dir(vault)
 
 
 def _agent_indexer(vault, query):

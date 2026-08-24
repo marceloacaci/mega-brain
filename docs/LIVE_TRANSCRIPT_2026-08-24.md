@@ -358,3 +358,71 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
 - Próximo worker (re-dispatch sem perguntar) pode atacar itens menores/arquiteturais:
   reaproveitar cache de /stats em swarm._agent_metric, ou constante NOTE_LIMIT compartilhada.
 
+## Continuação 2026-08-24 (worker 3) — Sprint 13: Consolidação (18→19 suítes)
+
+### Iter 1 — Baseline + auditoria de dívida
+- `git log`/status: HEAD=53375c6 (origin synced). `python tests/run_all.py` -> **18/18 verdes**.
+- `py_compile 80_SYSTEM/SCRIPTS/*.py` -> OK.
+- DEBT identificada (S12 deixou): `NOTE_LIMIT` (600) hardcoded duplicado em semantic+graph;
+  guard `VaultPathError` copiado 4x (mcp/server, semantic, predictive, compress-delega);
+  rota `/stats` re-walkava o vault duplicando `swarm._count_md`; código morto
+  (`graph._match_rel`, `llm_local._HEAD_RE/_LINK_RE/_TAG_RE`, `compress._is_tag`).
+
+### Iter 2 — constantes + vault_path + vault_stats compartilhados
+- NOVO `80_SYSTEM/SCRIPTS/constants.py::NOTE_LIMIT=600`. `semantic` e `graph` importam
+  e usam nos defaults de `_vault_notes/related_notes/suggest/build_graph/_iter_notes/
+  _vault_signature/build_graph_cached` (teto único).
+- NOVO `80_SYSTEM/SCRIPTS/vault_path.py` (VaultPathError + `vault_path(vault, rel)`).
+  `mcp_obsidian_server._vault_path(rel)` e `predictive._vault_path(rel)` viram wrappers
+  de 1 linha; `semantic._vault_rel` delega. NOME da classe `VaultPathError` preservado
+  (contrato de teste `type(e).__name__` em e2e_security/test_security_v2/test_predictive).
+- NOVO `80_SYSTEM/SCRIPTS/vault_stats.py::count_by_dir(vault)` -> (total, by_dir) 1 walk.
+  `swarm._count_md` e a rota `/stats` do MCP delegam a ele (fim da duplicação de varredura).
+
+### Iter 3 — remoção de código morto
+- `graph._match_rel` removido (substituído por lookup dict O(1) no P11, nunca chamado).
+- `llm_local._HEAD_RE/_LINK_RE/_TAG_RE` removidos (compilados, não usados).
+- `compress._is_tag` removido (não usado).
+
+### Iter 4 — teste não-tautológico + registro
+- NOVO `tests/test_shared_modules.py`: checa NOTE_LIMIT==600, semantic/graph usam o
+  default, `vault_path` confina (traversal bloqueado) e mantém nome, e
+  `count_by_dir == swarm._count_md` num fixture de 4 notas. Reverter qualquer consolidação
+  faz o teste falhar (anti-tautologia).
+- `tests/run_all.py`: +1 suíte -> **19/19 verdes** (era 18/18).
+
+### Iter 5 — FCS do dashboard revalidado (P10–P14)
+- SETUP: MCP fresco (porta 40150) + http.server (40151) num fixture de 6 notas (1 órfão).
+  `/graph?k=3` -> 6 nós/7 arestas; `/activity` -> 2 células; `/validate` -> 0 problemas.
+- `browser_console` assertions (runtime, sem erros):
+  * `loadGraph()` -> stat-nodes=6, stat-edges=7.
+  * `renderOrphans(g)` -> painel lista 3 (2 daily + Orfao, sem wikilinks) — grau wikilink 0.
+  * `bfsPath('Nota A','Nota C')` -> caminho encontrado.
+  * `focusNode`/`clearFocus` OK.
+  * `search('alpha')` -> 1 hit real via `data.hits` (contrato P13 OK).
+  * `loadActivity()` -> heatmap 2 células; `runValidate()` -> "vault íntegro ✓".
+- `node --check` inline: OK. `wc -c web/dashboard.html`=25003, termina em `</html>` (P14 OK).
+- Screenshot: grafo SVG, donut (core:3/daily:2/moc:1), heatmap, órfãos, tabela de ping —
+  layout coerente, sem overlap (vision confirmou).
+
+### Iter 6 — documentação
+- NOVO `docs/sprints/sprint-13.md` (S13-A/B/C/D: NOTE_LIMIT/vault_path/vault_stats/codigo morto + FCS).
+- `docs/chronogram.md`: seção de status + cobertura de testes -> **19/19 suítes verdes**;
+  dívida S12 (teto 400vs600, reuso de contagem, 4x guard) marcada como RESOLVIDA.
+
+### Iter 7 — commit + push
+- Arquivos: constants.py, vault_path.py, vault_stats.py (novos) + semantic/graph/mcp/
+  predictive/swarm/compress/llm_local alterados + tests/test_shared_modules.py (novo) +
+  run_all.py + docs sprint-13/chronogram + 50_METRICS/ (126 snapshots do reindex, legítimos).
+- `python tests/run_all.py` -> **19/19 verdes** antes do commit.
+- Co-autor Hermes. Push origin master.
+
+### Balanço do worker 3
+- 18/18 -> **19/19 suítes verdes** (+1 test_shared_modules, não-tautológico).
+- Consolidação SEM mudança de contrato de rota/JSON: dívida estrutural S12 eliminada
+  (teto único, guard único, contagem única) + código morto removido.
+- FCS do dashboard revalidado de fato no browser (P10–P14): 0 erros runtime.
+- Próximo worker: pode evoluir (ex.: reutilizar o cache de /graph no `/stats` do swarm,
+  ou endpoints novos documentados) — mantendo o padrão "verde + FCS + commit/push".
+
+

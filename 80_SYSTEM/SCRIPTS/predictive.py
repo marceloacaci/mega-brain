@@ -34,18 +34,15 @@ WIKILINK = re.compile(r"\[\[([^\]]+)\]\]")
 WORD = re.compile(r"[a-zA-ZÀ-ÿ]{4,}")
 
 
-class VaultPathError(ValueError):
-    """Path recebido tenta sair do vault (path traversal)."""
+# Guard de path compartilhado (vault_path.py): confina `rel` ao VAULT e levanta
+# VaultPathError em traversal. Importamos a classe para manter o contrato de
+# nome usado por test_predictive_security (`predictive.VaultPathError`).
+from vault_path import vault_path as _vault_path_impl, VaultPathError
 
 
 def _vault_path(rel):
-    """Resolve `rel` DENTRO do vault; levanta VaultPathError se escapar (P16/S11)."""
-    base = os.path.abspath(VAULT)
-    fp = os.path.abspath(os.path.join(base, (rel or "").strip("/\\").replace("\\", "/")))
-    if os.path.normcase(fp) != os.path.normcase(base) and \
-            not os.path.normcase(fp).startswith(os.path.normcase(base) + os.sep):
-        raise VaultPathError("path fora do vault")
-    return fp
+    """Resolve `rel` DENTRO do VAULT; levanta VaultPathError se escapar (P16/S11)."""
+    return _vault_path_impl(VAULT, rel)
 
 
 def _notes():

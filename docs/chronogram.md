@@ -100,7 +100,7 @@ mas o desenvolvimento correu à frente — S1/S2/S3 já implementados.
 **Conclusao**: **100% do escopo M1–M6 + v2.0 + S10 entregue**. v1.0.0 (S1–S8), v2.0.0 (S9),
 v2.1.0 (S10) atingidos em 2026-08-23. Ativação de IA real: `OLLAMA_URL`+`OLLAMA_MODEL`.
 
-### Manutenção autônoma pós-v2.1.0 (S11 + S12)
+### Manutenção autônoma pós-v2.1.0 (S11 + S12 + S13)
 - **Sprint 11 — Hardening de Segurança/Performance** (DONE, 2026-08-24): path traversal
   fechado em 7 rotas, `/graph` 60s→0.36s, `/validate` 15→4 problemas, `mask_pii` corrigido,
   `compress` contrato de tokens, remoção de 1 os.walk redundante em `/validate` e `run_swarm`.
@@ -109,16 +109,30 @@ v2.1.0 (S10) atingidos em 2026-08-23. Ativação de IA real: `OLLAMA_URL`+`OLLAM
   (rotas `/related`+`/compress` → 400); `/graph` embeddings sem O(n²); painel de Órfãos do
   dashboard por wikilink (FCS no browser). Suítes: **16/16 verdes** (era 14/14). CI canônica
   5/5 jobs `success` nos commits `6af556e` e `60c1c31`.
+- **Sprint 13 — Consolidação de Código** (DONE, 2026-08-24): elimina a dívida estrutural
+  apontada no log acima:
+  - `constants.NOTE_LIMIT=600` fonte única do teto de notas (semantic==graph) — resolve o
+    item "unificar teto de notas" (antes 400 vs 600).
+  - `vault_path.py` centraliza o guard `VaultPathError` (antes copiado 4x em server/semantic/
+    predictive/compress). `VaultPathError` mantém o nome (contrato de teste type(e).__name__).
+  - `vault_stats.count_by_dir` fonte única da contagem de notas (antes duplicada em
+    `swarm._count_md` e na rota `/stats` do MCP) — resolve o item "reaproveitar contagem".
+  - Código morto removido: `graph._match_rel`, `llm_local._HEAD_RE/_LINK_RE/_TAG_RE`,
+    `compress._is_tag`.
+  - Novo `tests/test_shared_modules.py` (não-tautológico: reverter confinamento/teto/duplicação
+    faz o teste falhar). Suítes: **19/19 verdes** (era 16/16). FCS do dashboard revalidado
+    (P10–P14) no browser sem erros runtime.
 
 ### Cobertura de testes (inegociavel do `docs/quality.md`)
-- Suíte completa (`tests/run_all.py`): **16/16 suítes verdes**
+- Suíte completa (`tests/run_all.py`): **19/19 suítes verdes**
 - Smoke MCP: **8/8** · Debounce: **4/4** · E2E validação M4: **2/2** · E2E v2.0: **5/5** ·
   E2E Ollama S10-A: **SKIP** (offline) · E2E Dashboard S10-B: **PASS** ·
   E2E Governanca S10-C: **PASS** · E2E Seguranca S11: **5/5** · E2E integração: **3/3** ·
   E2E resiliência M5: **3/3** · E2E hooks: **4/4** · Unidade validate links S11: **6/6** ·
   Unidade governance PII S11: **20/20** · Unidade compress contrato S11: **22/22** ·
-  Unidade segurança v2 S12: **7/7** · Unidade dashboard orfãos S12: **4/4**
-- CI: `ci-cd.yml` roda lint + SAST + test-linux (run_all) + test-windows (E2E hooks+backup) + build Docker.
+  - Unidade segurança v2 S12: **7/7** · Unidade dashboard orfãos S12: **4/4** ·
+    Unidade modulos compartilhados S13: **PASS**
+  - CI: `ci-cd.yml` roda lint + SAST + test-linux (run_all) + test-windows (E2E hooks+backup) + build Docker.
 
 [[gantt]]
 

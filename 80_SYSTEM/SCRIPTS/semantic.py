@@ -15,17 +15,12 @@ import math
 import os
 import re
 
-
-class VaultPathError(ValueError):
-    """Path recebido tenta sair do vault (path traversal).
-
-    Equivalente ao VaultPathError do mcp_obsidian_server.py, mas definido aqui
-    para que semantic.py confine o `path` de related_notes SEM acoplamento
-    circular (o server importa semantic, nao o contrario). Usado tambem como
-    contrato de erro nas rotas /related do MCP (P16/S11).
-    """
+from constants import NOTE_LIMIT
+from vault_path import vault_path as _vault_path_impl, VaultPathError
 
 
+# Re-export para manter o contrato de nome (test_security_v2 verifica
+# `semantic.VaultPathError` e `semantic._norm_rel`).
 def _vault_rel(vault, path):
     """Resolve `path` DENTRO do vault; levanta VaultPathError se escapar.
 
@@ -36,10 +31,8 @@ def _vault_rel(vault, path):
     rel = (path or "").strip("/\\").replace("\\", "/")
     if not rel:
         raise VaultPathError("path vazio")
-    fp = os.path.abspath(os.path.join(base, rel))
-    if os.path.normcase(fp) != os.path.normcase(base) and \
-            not os.path.normcase(fp).startswith(os.path.normcase(base) + os.sep):
-        raise VaultPathError("path fora do vault")
+    # Confinamento centralizado (vault_path.py): levanta VaultPathError se escapar.
+    _vault_path_impl(base, rel)
     # retorna o rel normalizado em separadores nativos p/ reuso seguro
     return rel.replace("/", os.sep)
 
@@ -86,7 +79,7 @@ def _cosine(a, b):
     return dot / (na * nb) if na and nb else 0.0
 
 
-def _vault_notes(vault, limit=600):
+def _vault_notes(vault, limit=NOTE_LIMIT):
     """Gera (rel_path, text) das notas .md (limit p/ performance)."""
     out = []
     for root, _, files in os.walk(vault):
@@ -115,7 +108,7 @@ def _norm_rel(vault, path):
     return os.path.join(os.path.abspath(vault), rel)
 
 
-def related_notes(vault, path, k=5, limit=600):
+def related_notes(vault, path, k=5, limit=NOTE_LIMIT):
     """Notas mais relacionadas a `path` (cosseno de embeddings se Ollama, senão Jaccard).
 
     Levanta VaultPathError se `path` escapar do vault (P16/S11).
@@ -152,7 +145,7 @@ def related_notes(vault, path, k=5, limit=600):
     return [{"path": rel, "score": round(score, 4)} for score, rel in scored[:k]]
 
 
-def suggest(vault, query, k=5, limit=600):
+def suggest(vault, query, k=5, limit=NOTE_LIMIT):
     """Sugere notas que melhor cobrem a `query` (mesma métrica de related_notes)."""
     q_tokens = _tokens(query)
     q_emb = _ollama_embed(query)

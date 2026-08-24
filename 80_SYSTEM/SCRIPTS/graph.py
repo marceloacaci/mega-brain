@@ -9,6 +9,8 @@ import re
 import time
 import threading
 
+from constants import NOTE_LIMIT
+
 WIKILINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
@@ -21,7 +23,7 @@ _GRAPH_CACHE = {"key": None, "mtime": 0.0, "count": -1, "built_at": 0.0, "data":
 _GRAPH_LOCK = threading.Lock()
 
 
-def _vault_signature(vault, limit=600):
+def _vault_signature(vault, limit=NOTE_LIMIT):
     """Retorna (mtime_max, contagem) das notas .md — usado p/ invalidar cache."""
     newest = 0.0
     count = 0
@@ -73,7 +75,7 @@ def _folder_type(rel):
     return mapping.get(top, "note")
 
 
-def _iter_notes(vault, limit=600):
+def _iter_notes(vault, limit=NOTE_LIMIT):
     count = 0
     for root, _, files in os.walk(vault):
         if ".obsidian" in root or ".trash" in root:
@@ -94,7 +96,7 @@ def _iter_notes(vault, limit=600):
                 return
 
 
-def build_graph(vault, k=3, limit=600):
+def build_graph(vault, k=3, limit=NOTE_LIMIT):
     """Retorna {'nodes':[{id,label,type}], 'edges':[{source,target,weight}]}."""
     notes = {}
     for rel, text in _iter_notes(vault, limit):
@@ -192,7 +194,7 @@ def build_graph(vault, k=3, limit=600):
     return {"nodes": nodes, "edges": edges}
 
 
-def build_graph_cached(vault, k=3, limit=600, ttl=300):
+def build_graph_cached(vault, k=3, limit=NOTE_LIMIT, ttl=300):
     """Versão cacheada de build_graph (P11): evita O(n^2) repetido no /graph.
 
     O cache e invalidado por assinatura do vault (mtime maximo + contagem de
@@ -218,10 +220,3 @@ def build_graph_cached(vault, k=3, limit=600, ttl=300):
         _GRAPH_CACHE["built_at"] = time.time()
         _GRAPH_CACHE["data"] = data
     return data, False
-
-
-def _match_rel(target_lower, notes):
-    for rel, n in notes.items():
-        if n["stem"].lower() == target_lower or n["title"].lower() == target_lower:
-            return rel
-    return None
