@@ -103,8 +103,16 @@ def tag_counts(vault, limit=20, top_only=True):
                 found.add(_normalize(m))
             for t in found:
                 counts[t] = counts.get(t, 0) + 1
+    # top_only: foca nas tags de maior ocorrencia (ignora ruido de digitacao,
+    # ex.: tag digitada uma unica vez por engano). POREM: se TODAS as tags
+    # aparecem exatamente uma vez (vault sem repeticoes, caso comum), nao
+    # podemos descartar tudo — senao a nuvem de tags fica vazia ("sem tags")
+    # apesar de haver tags (defeito real: vault com #tag1 unica mostrava
+    # "sem tags"). Regra: top_only so' descarta singletons QUANDO houver ao
+    # menos uma tag com count>1; caso contrario, mantem todas.
+    has_repeat = any(c > 1 for c in counts.values())
     items = [{"tag": t, "count": c} for t, c in counts.items()
-             if (not top_only) or c > 1]
+             if (not top_only) or (not has_repeat) or c > 1]
     items.sort(key=lambda x: (-x["count"], x["tag"]))
     return items[:limit]
 

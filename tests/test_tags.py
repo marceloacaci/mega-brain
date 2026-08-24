@@ -108,6 +108,36 @@ def main():
             check("tags cache: invalida ao mexer .md", hit3 is False)
         finally:
             shutil.rmtree(dc, ignore_errors=True)
+        # REGRESSAO S26: top_only NAO deve esvaziar a nuvem quando TODAS as tags
+        # aparecem uma unica vez (vault sem repeticoes, caso comum). Antes deste
+        # fix, tag_counts(d, top_only=True) com so' singletons devolvia [] e o
+        # dashboard mostrava "sem tags" injustamente.
+        sd = tempfile.mkdtemp(prefix="mb_tags_singleton_")
+        try:
+            with open(os.path.join(sd, "s.md"), "w", encoding="utf-8") as fh:
+                fh.write("# S\n#tag1 #projeto/x\n")
+            stags = tag_counts(sd, limit=20)  # top_only=True (default)
+            sby = {t["tag"]: t["count"] for t in stags}
+            # nota: #projeto/x vira 'projeto' (regex de tag para em '/')
+            check("singletons nao esvaziam (top_only)", "tag1" in sby and sby.get("tag1") == 1)
+            check("singletons todos presentes", set(sby.keys()) >= {"tag1", "projeto"})
+        finally:
+            shutil.rmtree(sd, ignore_errors=True)
+        # REGRESSAO S26-b: top_only AINDA descarta singletons QUANDO ha repetidas
+        # (ruido de digitacao). Prova que o fix nao quebrou a funcionalidade original.
+        # contagem e' POR NOTA: 'comum' em 2 notas => count=2; 'rara' em 1 nota => count=1.
+        rd = tempfile.mkdtemp(prefix="mb_tags_repeat_")
+        try:
+            with open(os.path.join(rd, "a.md"), "w", encoding="utf-8") as fh:
+                fh.write("# a\n#comum\n")
+            with open(os.path.join(rd, "b.md"), "w", encoding="utf-8") as fh:
+                fh.write("# b\n#comum #rara\n")
+            rtags = tag_counts(rd, limit=20)
+            rby = {t["tag"]: t["count"] for t in rtags}
+            check("com repeticao: rara(count1) descartada", "rara" not in rby)
+            check("com repeticao: comum(count2) mantida", rby.get("comum", 0) == 2)
+        finally:
+            shutil.rmtree(rd, ignore_errors=True)
     finally:
         shutil.rmtree(d, ignore_errors=True)
 

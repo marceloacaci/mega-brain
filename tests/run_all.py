@@ -37,7 +37,7 @@ SUITE = [
     ("Unidade modulos compartilhados S13 (const+guards)", ["python", "tests/test_shared_modules.py"]),
     ("Unidade notas recentes S14 (ordenacao+limit+cutoff)", ["python", "tests/test_recent.py"]),
     ("E2E notas recentes S14 (rota /recent)", ["python", "tests/e2e_recent.py"]),
-    ("Unidade nuvem de tags S15 (frontmatter+inline+top_only)", ["python", "tests/test_tags.py"]),
+    ("Unidade nuvem de tags S15 (frontmatter+inline+top_only+S26)", ["python", "tests/test_tags.py"]),
     ("E2E nuvem de tags S15 (rota /tags)", ["python", "tests/e2e_tags.py"]),
     ("Unidade tag() S16 (nao dropa tags)", ["python", "tests/test_tag_func.py"]),
     ("Unidade cache /validate S16 (mtime/TTL)", ["python", "tests/test_validate_cache.py"]),
