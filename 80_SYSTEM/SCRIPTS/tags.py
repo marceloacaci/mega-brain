@@ -15,6 +15,8 @@ Uso:
 """
 import os
 import re
+import time
+import threading
 
 from constants import NOTE_LIMIT
 
@@ -28,6 +30,29 @@ _FM_TAGS_INLINE = re.compile(r"tags:\s*\[([^\]]*)\]", re.IGNORECASE)
 def _normalize(tag):
     t = tag.strip().lower()
     return t
+
+
+def _vault_mtime_signature(vault):
+    """Retorna (mtime_max, contagem) das notas .md — usado p/ invalidar cache.
+
+    Invalida o cache de /tags quando qualquer .md muda.
+    """
+    newest = 0.0
+    count = 0
+    for root, _, files in os.walk(vault):
+        if ".obsidian" in root or ".trash" in root:
+            continue
+        for f in files:
+            if not f.endswith(".md"):
+                continue
+            try:
+                m = os.path.getmtime(os.path.join(root, f))
+            except OSError:
+                continue
+            if m > newest:
+                newest = m
+            count += 1
+    return newest, count
 
 
 def tag_counts(vault, limit=20, top_only=True):
@@ -77,3 +102,32 @@ def tag_counts(vault, limit=20, top_only=True):
              if (not top_only) or c > 1]
     items.sort(key=lambda x: (-x["count"], x["tag"]))
     return items[:limit]
+
+
+# Cache thread-safe (P11-style) p/ /tags: evita re-varrer o vault a cada poll
+# do dashboard. Invalidado por assinatura de mtime do vault OU TTL.
+_TAGS_CACHE = {"key": None, "mtime": 0.0, "data": None, "built_at": 0.0}
+_TAGS_LOCK = threading.Lock()
+_TAGS_DEFAULT_TTL = 60.0
+
+
+def tag_counts_cached(vault, limit=20, top_only=True, ttl=_TAGS_DEFAULT_TTL):
+    """Versão cacheada de tag_counts (invalida por mtime do vault ou TTL).
+
+    Chave do cache: (limit, top_only). Retorna (lista, foi_cacheado). Thread-safe.
+    """
+    key = (int(limit), bool(top_only))
+    with _TAGS_LOCK:
+        cached = _TAGS_CACHE
+        if cached["key"] == key and cached["data"] is not None:
+            sig = _vault_mtime_signature(vault)
+            if sig[0] == cached["mtime"] and (time.time() - cached["built_at"]) < ttl:
+                return cached["data"], True
+    data = tag_counts(vault, limit=limit, top_only=top_only)
+    mtime, _ = _vault_mtime_signature(vault)
+    with _TAGS_LOCK:
+        _TAGS_CACHE["key"] = key
+        _TAGS_CACHE["mtime"] = mtime
+        _TAGS_CACHE["data"] = data
+        _TAGS_CACHE["built_at"] = time.time()
+    return data, False

@@ -62,7 +62,7 @@ from swarm import run_swarm  # noqa: E402
 from llm_local import reason  # noqa: E402
 from graph import build_graph_cached  # noqa: E402
 from recent import recent_notes, recent_notes_cached  # noqa: E402
-from tags import tag_counts  # noqa: E402
+from tags import tag_counts, tag_counts_cached  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Observabilidade (Sprint 5 / M3): metricas + cache de /search (TTL).
@@ -366,7 +366,9 @@ class Handler(BaseHTTPRequestHandler):
                     tl = 20
                 with _METRICS_LOCK:
                     _METRICS["mcp_requests_total"] += 1
-                return self._send({"tags": tag_counts(VAULT, limit=tl)})
+                # cache por mtime/TTL (P11-style) p/ evitar re-varredura a cada poll
+                data, was_cached = tag_counts_cached(VAULT, limit=tl)
+                return self._send({"tags": data, "cached": was_cached})
             except Exception as e:
                 return self._send({"error": f"tags failed: {e}"}, 500)
         if u.path == "/activity":

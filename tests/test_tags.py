@@ -7,6 +7,7 @@ Anti-tautologia: reverter a ordenação (crescente) ou a filtragem top_only faz 
 """
 import os
 import sys
+import time
 import tempfile
 import shutil
 
@@ -74,6 +75,25 @@ def main():
             check("sem tags -> []", tag_counts(empty, limit=10) == [])
         finally:
             shutil.rmtree(empty, ignore_errors=True)
+        # cache: 1o miss, 2o hit; invalida ao mexer num .md
+        import tags as tags_mod
+        dc = tempfile.mkdtemp(prefix="mb_tags_cache_")
+        try:
+            for nm in ("a.md", "b.md"):
+                with open(os.path.join(dc, nm), "w", encoding="utf-8") as fh:
+                    fh.write("---\ntags: [x]\n---\n# t\n")
+            _, hit1 = tags_mod.tag_counts_cached(dc, limit=20)
+            _, hit2 = tags_mod.tag_counts_cached(dc, limit=20)
+            check("tags cache: 1o miss", hit1 is False)
+            check("tags cache: 2o hit", hit2 is True)
+            time.sleep(0.01)
+            with open(os.path.join(dc, "a.md"), "a", encoding="utf-8") as fh:
+                fh.write("# y\n")
+            os.utime(os.path.join(dc, "a.md"), None)
+            _, hit3 = tags_mod.tag_counts_cached(dc, limit=20)
+            check("tags cache: invalida ao mexer .md", hit3 is False)
+        finally:
+            shutil.rmtree(dc, ignore_errors=True)
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
