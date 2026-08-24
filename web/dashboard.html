@@ -299,6 +299,8 @@
     }
 
     function renderOrphans(g){
+      g = g || GRAPH;
+      if(!g || !g.nodes){ $('#orphans').innerHTML = '<div>grafo nao carregado</div>'; return; }
       const deg={}; g.nodes.forEach(n=>deg[n.id]=0);
       g.edges.forEach(e=>{ if(deg[e.source]!==undefined)deg[e.source]++; if(deg[e.target]!==undefined)deg[e.target]++; });
       const orf=g.nodes.filter(n=>deg[n.id]===0).map(n=>n.label||n.id);

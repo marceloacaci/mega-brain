@@ -86,3 +86,34 @@
   o teste FALHOU 3/5 expondo `{'content': 'SEGREDO\n'}` e criando `evil.md`
   fora do vault (rc=1). Restaurado -> rc=0. Teste tem valor real, nao e tautologico.
 - `tests/run_all.py`: suite registrada -> **11/11 verdes** (era 10/10).
+
+## Iteracao 71-85 — VERIFICACAO FCS DO DASHBOARD NO BROWSER (P10-P14)
+
+- Fixture temp via `tempfile.mkdtemp` (P9/P11): 6 notas (A->B->C com wikilinks,
+  1 orfao isolado, 2 daily notes) em `%TEMP%/mb_dash_99ggcjvk`.
+- MCP na porta FRESCA 8774 + `python -m http.server 8784` em `web/` (portas
+  confirmadas livres antes de subir — gotcha de porta zumbi do P10).
+  `/health` retornou JSON `{"ok":true}` (nao HTML 404) => porta correta.
+- `/graph?k=3` respondeu INSTANTANEO no fixture (efeito da otimizacao anterior).
+- Browser aberto em `dashboard.html?mcp=http://127.0.0.1:8774`. Verificacoes de
+  RUNTIME (P13) chamando as funcoes reais no console:
+  * `search()` com 'alpha' -> 3 resultados reais (fix de `hits` do worker 1 CONFIRMADO no browser).
+  * `bfsPath('A','C')` -> `["10_MEGA_BRAIN/A.md","30_PROJECTS/C.md"]` OK.
+  * `focusNode()` + `clearFocus()` -> sem excecao.
+  * `runValidate()` -> "Total notas: 6 · Problemas: 2" (pastas ausentes no fixture, esperado).
+  * `loadActivity()` -> heatmap com 2 celulas; `getComputedStyle` provou 30.2x30.2px,
+    `rgb(59,130,246)`, com `title` "2026-08-23: 1 notas" => VISIVEL de fato, nao vazio.
+  * `stat-nodes`=6, `stat-edges`=8, ping OK (5/5), donut com 4 fatias.
+- BUG ENCONTRADO no FCS: `renderOrphans()` chamada sem argumento lancava
+  `TypeError: Cannot read properties of undefined (reading 'nodes')`. So aparece em
+  runtime (nenhum linter/CI pega — exatamente o cenario do P13).
+  CORRECAO: `g = g || GRAPH` + guarda `if(!g || !g.nodes)` com mensagem amigavel.
+- Validacao pos-fix: `node --check` no `<script>` extraido, rodado do ROOT (P10) -> OK.
+  `wc -c web/dashboard.html` = 24637 e TAIL intacto (`</html>`) => write nao truncou (P14).
+  Reload no browser: `renderOrphans()` sem arg -> "• Orfao" (sem excecao).
+- Inspecao visual (screenshot): grafo, donut, heatmap, orfaos, tabela de ping e
+  metricas Prometheus todos renderizando sem overlap/layout quebrado.
+- `python tests/run_all.py` -> **11/11 verdes**.
+- NOTA: `web/dashboard.html` esta sendo editado tambem por um agente irmao; mantive
+  a alteracao MINIMA e cirurgica (3 linhas) para evitar conflito.
+- NOTA: servidores em 8774/8784 deixados VIVOS (regra de seguranca: nao matar processos).
