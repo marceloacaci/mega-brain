@@ -160,7 +160,7 @@ v2.1.0 (S10) atingidos em 2026-08-23. Ativação de IA real: `OLLAMA_URL`+`OLLAM
     - Suítes: **25/25 verdes** (era 23/23). HEAD avança de `5f47538`.
 
 ### Cobertura de testes (inegociavel do `docs/quality.md`)
-- Suíte completa (`tests/run_all.py`): **25/25 suítes verdes**
+- Suíte completa (`tests/run_all.py`): **29/29 suítes verdes**
 - Smoke MCP: **8/8** · Debounce: **4/4** · E2E validação M4: **2/2** · E2E v2.0: **5/5** ·
   E2E Ollama S10-A: **SKIP** (offline) · E2E Dashboard S10-B: **PASS** ·
   E2E Governanca S10-C: **PASS** · E2E Seguranca S11: **5/5** · E2E integração: **3/3** ·
@@ -171,7 +171,8 @@ v2.1.0 (S10) atingidos em 2026-08-23. Ativação de IA real: `OLLAMA_URL`+`OLLAM
   Unidade teto notas S12: **PASS** · Unidade predictive traversal S12: **PASS** ·
   Unidade modulos compartilhados S13: **PASS** · Unidade notas recentes S14: **16/16** ·
   Unidade nuvem de tags S15: **10/10** · Unidade tag() S16: **9/9** ·
-  Unidade cache /validate S16: **6/6**
+  Unidade tag() S16: **9/9** · Unidade cache /validate S16: **6/6** ·
+  Unidade + E2E backlinks S17: **28/28** · Unidade stats-cache + quote-strip tags S18: **7/7**
   - CI: `ci-cd.yml` roda lint + SAST + test-linux (run_all) + test-windows (E2E hooks+backup) + build Docker.
 
 [[gantt]]
@@ -212,3 +213,25 @@ Próximas melhorias seguras identificadas (não concluídas — baixo risco/baix
 - `swarm._agent_metric`/`_agent_indexer` re-walk o vault; poderiam reaproveitar cache de `/stats`.
 - `semantic._vault_notes` (limit=400) vs `graph` (limit=600) — unificar teto de notas.
 
+
+### Sessão 2026-08-24 — S17 Backlinks + S18 Sinal/Cache (workers autônomos)
+- **S17 — `/backlinks`** (DONE): novo `backlinks.py` (`backlinks`/`backlinks_cached`,
+  resolução de alias/heading/pasta/`.md`, `_strip_code`, ignore `${...}`/`{{...}}`,
+  confinamento via `vault_path`). Rota `GET /backlinks` (200/400/404/500, flag `cached`).
+  Painel no dashboard (input + botão + drill-down). `test_backlinks.py` (17) +
+  `e2e_backlinks.py` (11). Suítes: **25/25 → 27/27**.
+- **S18 — Sinal + Cache** (DONE): `tags._normalize` strip de aspas de frontmatter
+  (defeito real: `"projeto/pentagon-mind"` no vault); `vault_stats.count_by_dir_cached`
+  + rota `/stats` cacheada (fecha assimetria vs /recent//tags//graph//validate).
+  `test_tags.py` (+4), `test_shared_modules.py` (+3). FCS no browser (ports 8820/8821):
+  tags limpas, stats miss→hit, search `data.hits`, backlinks, órfãos, ping OK(5/5), 0 erros.
+  Suítes: **27/27 verdes**.
+- **Status final**: 27/27 suítes verdes; FCS do dashboard validado sem runtime errors.
+
+  - **Sprint 19 — Cache semântico (/related + /suggest)** (DONE, 2026-08-24):
+    - `semantic.py`: `related_cached`/`suggest_cached` (P11-style, invalida por mtime
+      do vault ou TTL). Rotas `GET /related` e `GET /suggest` expõem flag `cached`.
+    - `tests/test_semantic_cache.py` (12) + `tests/e2e_semantic_cache.py` (8), não-tautológicos.
+    - DEFEITO corrigido por worker autônomo: `semantic.py` usava `time.time()` sem
+      `import time` -> NameError; rotas cached falhavam. Fix cirúrgico (`import time`).
+    - Suítes: **27/27 → 29/29 verdes**.
