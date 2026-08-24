@@ -14,6 +14,8 @@ Uso:
 import math
 import os
 import re
+import threading
+import time
 
 from constants import NOTE_LIMIT
 from vault_path import vault_path as _vault_path_impl, VaultPathError
@@ -161,3 +163,83 @@ def suggest(vault, query, k=5, limit=NOTE_LIMIT):
             scored.append((score, rel))
     scored.sort(reverse=True)
     return [{"path": rel, "score": round(score, 4)} for score, rel in scored[:k]]
+
+
+# ---------------------------------------------------------------------------
+# Cache thread-safe (P11-style) p/ /related e /suggest: evita re-varrer o
+# vault INTEIRO a cada poll do dashboard. Invalidado por assinatura de mtime
+# do vault OU TTL (padrao S14/S15). Reusa _vault_mtime_signature local p/ nao
+# acoplar a outros modulos (cada modulo mantem o seu — ver tags.py).
+# ---------------------------------------------------------------------------
+def _vault_mtime_signature(vault):
+    """Retorna (mtime_max, contagem) das notas .md — usado p/ invalidar cache."""
+    newest = 0.0
+    count = 0
+    for root, _, files in os.walk(vault):
+        if ".obsidian" in root or ".trash" in root:
+            continue
+        for f in files:
+            if not f.endswith(".md"):
+                continue
+            try:
+                m = os.path.getmtime(os.path.join(root, f))
+            except OSError:
+                continue
+            if m > newest:
+                newest = m
+            count += 1
+    return newest, count
+
+
+_RELATED_CACHE = {"key": None, "mtime": 0.0, "data": None, "built_at": 0.0}
+_RELATED_LOCK = threading.Lock()
+_RELATED_DEFAULT_TTL = 60.0
+
+
+def related_cached(vault, path, k=5, limit=NOTE_LIMIT, ttl=_RELATED_DEFAULT_TTL):
+    """Versão cacheada de related_notes (invalida por mtime do vault ou TTL).
+
+    Chave do cache: (path, k, limit). Retorna (lista, foi_cacheado). Thread-safe.
+    """
+    key = (path, int(k), int(limit))
+    with _RELATED_LOCK:
+        cached = _RELATED_CACHE
+        if cached["key"] == key and cached["data"] is not None:
+            sig = _vault_mtime_signature(vault)
+            if sig[0] == cached["mtime"] and (time.time() - cached["built_at"]) < ttl:
+                return cached["data"], True
+    data = related_notes(vault, path, k=k, limit=limit)
+    mtime, _ = _vault_mtime_signature(vault)
+    with _RELATED_LOCK:
+        _RELATED_CACHE["key"] = key
+        _RELATED_CACHE["mtime"] = mtime
+        _RELATED_CACHE["data"] = data
+        _RELATED_CACHE["built_at"] = time.time()
+    return data, False
+
+
+_SUGGEST_CACHE = {"key": None, "mtime": 0.0, "data": None, "built_at": 0.0}
+_SUGGEST_LOCK = threading.Lock()
+_SUGGEST_DEFAULT_TTL = 60.0
+
+
+def suggest_cached(vault, query, k=5, limit=NOTE_LIMIT, ttl=_SUGGEST_DEFAULT_TTL):
+    """Versão cacheada de suggest (invalida por mtime do vault ou TTL).
+
+    Chave do cache: (query, k, limit). Retorna (lista, foi_cacheado). Thread-safe.
+    """
+    key = (query, int(k), int(limit))
+    with _SUGGEST_LOCK:
+        cached = _SUGGEST_CACHE
+        if cached["key"] == key and cached["data"] is not None:
+            sig = _vault_mtime_signature(vault)
+            if sig[0] == cached["mtime"] and (time.time() - cached["built_at"]) < ttl:
+                return cached["data"], True
+    data = suggest(vault, query, k=k, limit=limit)
+    mtime, _ = _vault_mtime_signature(vault)
+    with _SUGGEST_LOCK:
+        _SUGGEST_CACHE["key"] = key
+        _SUGGEST_CACHE["mtime"] = mtime
+        _SUGGEST_CACHE["data"] = data
+        _SUGGEST_CACHE["built_at"] = time.time()
+    return data, False

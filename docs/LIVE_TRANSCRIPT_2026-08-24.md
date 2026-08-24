@@ -464,3 +464,44 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
   total=283 — cache funciona, payload íntegro.
 - Removido `%TEMP%/hermes-audit-real.py`.
 \n## Worker 6 (continuation) — Sprint 17: endpoint /backlinks + painel no dashboard\n\n- `python tests/run_all.py` (baseline): **25/25 verdes**. O FAIL do "E2E Dashboard S10-B"\n  reportado pelo worker anterior NAO se reproduziu (era transitorio de ambiente, nao bug\n  real no `e2e_dashboard.py`) -> nenhuma correcao necessaria.\n- Lacuna identificada: o vault expunha `/graph` (grafo INTEIRO, caro) mas nao respondia a\n  pergunta mais comum de um segundo cerebro: "quem aponta para esta nota?".\n- Implementado `80_SYSTEM/SCRIPTS/backlinks.py`:\n  - `backlinks(vault, path, limit)` -> `{path, title, total, backlinks:[{path,title,count}]}`.\n  - Resolve alias `[[Nota|apelido]]`, heading `[[Nota#secao]]`, prefixo de pasta\n    `[[10_MEGA_BRAIN/Nota]]` e ignora `.md` no alvo.\n  - Aplica `_strip_code()` (P16.3): wikilinks em blocos ``` / `inline` sao EXEMPLOS de\n    documentacao e NAO contam; placeholders `${...}`/`{{...}}` tambem sao ignorados.\n  - Nao conta auto-link; ordena por `count` desc, depois `path` asc.\n  - Seguranca: `path` do usuario passa por `vault_path()` -> `VaultPathError` em traversal.\n  - `backlinks_cached()` com invalidacao por assinatura de mtime do vault OU TTL\n    (padrao S14/S15), thread-safe, teto de 64 entradas para nao crescer sem limite.\n- Rota `GET /backlinks?path=<rel>` no MCP: 200 com `cached`, **400** se path ausente ou\n  traversal, **404** se a nota nao existe (try/except por rota — P8).\n- Testes novos (nao-tautologicos), registrados em `tests/run_all.py`:\n  - `tests/test_backlinks.py` — 17 asserts (alias, heading, pasta, codigo NAO conta,\n    placeholder, auto-link, ordenacao, 404, VaultPathError, cache miss->hit->invalidacao).\n  - `tests/e2e_backlinks.py` — 11 asserts na rota real (porta fixa 8903, stderr visivel P7,\n    server repo-relative P5): payload, cache, 400 sem path, 404, traversal nunca 200.\n- Dashboard (`web/dashboard.html`, ARQUIVO UNICO inline — P12): painel "Backlinks (quem\n  aponta para a nota)" com input + botao + Enter, contagem `N×` por fonte e **drill-down**\n  (clicar numa fonte carrega os backlinks DELA). Trata 400/404 mostrando `data.error`.\n- Verificacao de fato:\n  - `node --check` do `<script>` inline extraido, rodado a partir do ROOT (P10): rc=0.\n  - Tamanho real no disco conferido apos os patches (P14): 30862 bytes, tail intacto\n    (`</script></body></html>`), sem versao stale.\n  - **FCS no browser** (P13) com vault fixture temp (4 notas, 1 orfa) em MCP 8905 +\n    `http.server` 8916 `--bind 127.0.0.1` (o bind default subiu IPv6-only e dava\n    ERR_EMPTY_RESPONSE via 127.0.0.1 — usar `--bind 127.0.0.1`):\n    - `loadBacklinks('10_MEGA_BRAIN/B.md')` -> "2 nota(s) apontam para B / MOC 2× / A 1×"\n    - nota isolada -> "nenhum backlink ... (nota orfa de entrada)"\n    - inexistente -> "nota nao encontrada" (404); `../../secret.md` -> "path fora do vault" (400)\n    - path vazio -> mensagem de instrucao; clique numa fonte -> drill-down para `70_MOCS/MOC.md`\n    - `browser_console`: nenhum erro novo (o unico exception vazio e' o iframe Grafana\n      pre-existente, pois `localhost:3000` nao esta no ar).\n- `python tests/run_all.py` final: **27/27 suites verdes** (era 25) -> commit + push.\n- Regras respeitadas: nenhum processo/servidor foi morto (`terminate` apenas do server que\n  o proprio teste subiu); backup existente nao foi tocado.\n
+### Iter 5 — FCS do dashboard no browser (P10–P14) — TUDO OK
+- SETUP: MCP fresco (porta 8820) + http.server (8821) em fixture de 7 notas
+  (A<->B<->C wikilinks, 1 orfao 'Orfao isolado', 2 daily, INDEX_GERAL).
+  /health JSON ok (nao HTML 404) => portas corretas.
+- `browser_console` assertions (runtime, 0 erros):
+  * health ok; graph 7 nos / 2 arestas.
+  * orfaos (grau wikilink 0): [INDEX_GERAL, ontem, hoje, Orfao] — correto
+    (A/B/C formam cadeia, grau>0).
+  * search('tag1') -> 2 hits via `data.hits` (contrato P13 OK).
+  * tags -> ['tag1:2'] — fix de aspas CONFIRMADO ao vivo (sem aspas soltas).
+  * backlinks(B) -> ['A'] (recurso do worker irmao /backlinks funciona).
+  * recent -> 3; stats #1 cached:false, #2 cached:true (cache S18-B ao vivo).
+- VISAO (screenshot): grafo SVG, donut (note1/core2/daily2/project1/moc1),
+  heatmap, tabela de ping OK(5/5), orfaos, tags/recent/backlinks — layout
+  coerente, SEM overlap/quebra. getComputedStyle nao necessario (DOM visivel).
+- node --check do JS inline: OK (P10). wc -c web/dashboard.html=30862,
+  termina em </html> (P14 OK).
+- CONCLUSAO FCS: dashboard 100% funcional, 0 runtime errors. Servidores de
+  teste 8820/8821 deixados VIVOS (regra de seguranca: nao matar processos).
+
+### Iter 6 — Documentacao S18 + cronograma
+- NOVO docs/sprints/sprint-18.md: S18-A (quote-strip em tags, defeito real do
+  vault) + S18-B (cache de /stats, assimetria de polling). CA + evidencias.
+- docs/chronogram.md: status -> 27/27 suítes verdes; S17 (backlinks) + S18.
+- Próximo ciclo: continuar auditoria / melhorias SEGURAS mantendo verde+FCS+push.
+
+### Iter 7 — DEFEITO REAL achado (S19): semantic.py sem `import time`
+- CONTEXTO: worker irmao comitou S19 (cache semantico /related+/suggest) com
+  `tests/test_semantic_cache.py` (12) + `tests/e2e_semantic_cache.py` (8) e as
+  rotas ja usando `related_cached`/`suggest_cached`, MAS `semantic.py` usava
+  `time.time()` sem `import time` -> NameError em tempo de execucao.
+- SINTOMA: `run_all` caiu 29 suítes (era 27) e S19 FAIL (related+suggest).
+  `python -c "semantic.related_cached('.','A.md')"` -> NameError: name 'time'
+  is not defined. CI teria falhado (nao pego localmente pelo irmao).
+- FIX (cirurgico): +`import time` em semantic.py (topo). Sem mudanca de contrato
+  de rota/JSON; `related_cached`/`suggest_cached` ja existiam e estavam corretos.
+- VERIFICACAO: `test_semantic_cache.py` 12/12; `e2e_semantic_cache.py` 8/8;
+  spin-up MCP: /related #1 cached:false #2 cached:true; /suggest igual.
+  `python tests/run_all.py` -> **29/29 suítes verdes** (recuperado de 27+2 FAIL).
+- py_compile OK. Reaproveitei a descoberta: o `import time` faltante era o unico
+  gap; rotas e testes do irmao estavam corretos.
