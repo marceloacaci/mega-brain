@@ -121,6 +121,18 @@ def main():
         check("10_MEGA_BRAIN/Doc.md" in paths,
               "nota cujo unico link recebido esta em codigo continua orfa")
         check(o["total_orfas"] == len(o["orphans"]), "total_orfas == len(orphans)")
+        # S23: by_dir agrega por pasta-raiz (vault real: 313 orfas / 370 notas — a lista
+        # crua e' inutilizavel na UI, o resumo por pasta e' o que torna acionavel).
+        bd = o.get("by_dir")
+        check(isinstance(bd, dict), "orphans_in expoe by_dir (dict)")
+        check(sum(bd.values()) == o["total_orfas"],
+              "soma de by_dir == total_orfas (got %s vs %s)"
+              % (sum(bd.values()), o["total_orfas"]))
+        for rel in [x["path"] for x in o["orphans"]]:
+            top = rel.split("/", 1)[0] if "/" in rel else "(raiz)"
+            check(top in bd, "pasta '%s' presente em by_dir" % top)
+            break
+        check(all(v > 0 for v in bd.values()), "by_dir nao tem contagem zero")
         check(o["orphans"] == sorted(o["orphans"], key=lambda x: x["path"]),
               "orfas ordenadas por path")
         check(all("title" in x for x in o["orphans"]), "cada orfa tem title")

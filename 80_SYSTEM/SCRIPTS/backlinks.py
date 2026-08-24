@@ -215,8 +215,15 @@ def orphans_in(vault, limit=NOTE_LIMIT):
     orph = [{"path": rel, "title": titles[rel]}
             for rel, _s, _t in notes if rel not in linked]
     orph.sort(key=lambda x: x["path"])
+    # Agregado por pasta-raiz: em vault real deu 313 orfas de 370 notas (84,6%) —
+    # listar tudo e' inutilizavel na UI. `by_dir` permite ao dashboard mostrar um
+    # resumo acionavel ("onde estao as orfas") antes da lista completa.
+    by_dir = {}
+    for x in orph:
+        top = x["path"].split("/", 1)[0] if "/" in x["path"] else "(raiz)"
+        by_dir[top] = by_dir.get(top, 0) + 1
     return {"total_notas": len(notes), "total_orfas": len(orph),
-            "orphans": orph}
+            "by_dir": by_dir, "orphans": orph}
 
 
 _ORPH_CACHE = {"key": None, "mtime": 0.0, "data": None, "built_at": 0.0}

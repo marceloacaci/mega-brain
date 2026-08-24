@@ -68,9 +68,12 @@ Ignora wikilink em bloco de código, resolve alias/heading/pasta, não conta aut
 Para **onde a nota aponta** (`resolved:false` = link quebrado). `400`/`404` idem acima.
 
 ### `GET /orphans-in`
-→ `200 {"total_notas","total_orfas","orphans":[{"path","title"}],"cached"}`
+→ `200 {"total_notas","total_orfas","by_dir":{"<pasta>":n},"orphans":[{"path","title"}],"cached"}`
 Notas que **ninguém linka**. Uma passada O(n) — não confundir com "grau 0" do `/graph`,
 que também considera links de saída e arestas semânticas.
+`by_dir` agrega as órfãs por pasta-raiz: no vault real são **313 órfãs de 370 notas
+(84,6%)**, então a lista crua é inutilizável na UI e o resumo por pasta é o que indica
+onde atacar (o dashboard mostra `by_dir` + as 40 primeiras).
 
 ---
 

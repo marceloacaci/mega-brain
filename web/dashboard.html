@@ -492,11 +492,22 @@
         const data = await r.json();
         if(!r.ok){ out.innerHTML = `<span style="color:var(--muted)">${data.error || 'erro '+r.status}</span>`; return; }
         const orph = (data.orphans || []);
+        const bd = data.by_dir || {};
         const head = `<div style="margin-bottom:0.4em; color:var(--txt);"><b>${data.total_orfas}</b> de <b>${data.total_notas}</b> notas não recebem nenhum wikilink</div>`;
         if(!orph.length){ out.innerHTML = head + '<span style="color:var(--muted)">nenhuma órfã de entrada 🎉</span>'; return; }
-        out.innerHTML = head + orph.map(x=>`<div style="padding:0.25em 0; border-bottom:1px solid var(--border);">`
+        // S23: no vault real sao 313 orfas de 370 notas — despejar tudo e' inutilizavel.
+        // Mostra resumo por pasta (onde atacar) + so' as primeiras ORPH_CAP na lista.
+        const ORPH_CAP = 40;
+        const dirs = Object.keys(bd).sort(function(a,b){return bd[b]-bd[a];});
+        const resumo = dirs.length ? `<div style="margin-bottom:0.5em; font-size:0.85em; color:var(--muted);">`
+          + dirs.map(function(d){return `<span style="display:inline-block; margin:0 0.5em 0.25em 0;">${d}: <b style="color:var(--accent);">${bd[d]}</b></span>`;}).join('')
+          + `</div>` : '';
+        const lista = orph.slice(0, ORPH_CAP).map(function(x){return `<div style="padding:0.25em 0; border-bottom:1px solid var(--border);">`
           + `<span style="color:var(--accent); cursor:pointer;" onclick="loadBacklinks('${x.path.replace(/'/g, "\\'")}')">${x.title}</span>`
-          + ` <span style="color:var(--muted); font-size:0.85em;">${x.path}</span></div>`).join('');
+          + ` <span style="color:var(--muted); font-size:0.85em;">${x.path}</span></div>`;}).join('');
+        const maisQue = orph.length > ORPH_CAP
+          ? `<div style="padding:0.4em 0; color:var(--muted); font-size:0.85em;">… e mais ${orph.length - ORPH_CAP} órfã(s); veja o resumo por pasta acima</div>` : '';
+        out.innerHTML = head + resumo + lista + maisQue;
       }catch(e){ out.innerHTML = '<span style="color:var(--muted)">órfãs de entrada indisponível</span>'; }
     }
     $('#orphInBtn').addEventListener('click', loadOrphansIn);
