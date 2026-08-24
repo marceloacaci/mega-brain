@@ -211,6 +211,12 @@
           </div>
           <div id="blOut" style="max-height:220px; overflow:auto; color:var(--muted);">informe o caminho de uma nota (ou clique num nó do grafo)</div>
         </div>
+
+        <div class="panel">
+          <h4 class="ui header"><i class="unlinkify icon"></i> Órfãs de Entrada (ninguém as linka)</h4>
+          <button class="ui button action" id="orphInBtn"><i class="refresh icon"></i> Recalcular</button>
+          <div id="orphInOut" style="max-height:220px; overflow:auto; color:var(--muted); margin-top:0.6em;">carregando…</div>
+        </div>
       </div>
     </div>
     <div class="ui tiny message" id="status"></div>
@@ -432,6 +438,26 @@
     $('#blBtn').addEventListener('click', ()=>loadBacklinks());
     $('#blPath').addEventListener('keydown', (e)=>{ if(e.key==='Enter') loadBacklinks(); });
 
+    // S17-B: orfas de ENTRADA. Contrato: /orphans-in -> {total_notas, total_orfas,
+    // orphans:[{path,title}], cached}. Diferente do painel "Notas Órfãs" (grau 0 no
+    // /graph, que conta links de saída e arestas semânticas): aqui é só "ninguém aponta".
+    async function loadOrphansIn(){
+      const out = $('#orphInOut');
+      out.innerHTML = '<span style="color:var(--muted)">carregando…</span>';
+      try{
+        const r = await fetch(`${MCP}/orphans-in`);
+        const data = await r.json();
+        if(!r.ok){ out.innerHTML = `<span style="color:var(--muted)">${data.error || 'erro '+r.status}</span>`; return; }
+        const orph = (data.orphans || []);
+        const head = `<div style="margin-bottom:0.4em; color:var(--txt);"><b>${data.total_orfas}</b> de <b>${data.total_notas}</b> notas não recebem nenhum wikilink</div>`;
+        if(!orph.length){ out.innerHTML = head + '<span style="color:var(--muted)">nenhuma órfã de entrada 🎉</span>'; return; }
+        out.innerHTML = head + orph.map(x=>`<div style="padding:0.25em 0; border-bottom:1px solid var(--border);">`
+          + `<span style="color:var(--accent); cursor:pointer;" onclick="loadBacklinks('${x.path.replace(/'/g, "\\'")}')">${x.title}</span>`
+          + ` <span style="color:var(--muted); font-size:0.85em;">${x.path}</span></div>`).join('');
+      }catch(e){ out.innerHTML = '<span style="color:var(--muted)">órfãs de entrada indisponível</span>'; }
+    }
+    $('#orphInBtn').addEventListener('click', loadOrphansIn);
+
     $('#exportBtn').addEventListener('click', ()=>{
       const svg=$('#graph').cloneNode(true); svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
       const data='<?xml version="1.0"?>\n'+new XMLSerializer().serializeToString(svg);
@@ -457,7 +483,7 @@
     $('#validateBtn').addEventListener('click', runValidate);
     $('#graph').addEventListener('click', (e)=>{ if(e.target.tagName!=='circle') clearFocus(); });
 
-    health(); loadGraph(); loadMetrics(); loadActivity(); loadGrafana(); loadRecent(); loadTags(); testConnection(5);
+    health(); loadGraph(); loadMetrics(); loadActivity(); loadGrafana(); loadRecent(); loadTags(); loadOrphansIn(); testConnection(5);
     setInterval(()=>{ health(); loadMetrics(); }, 15000);
   </script>
 </body>

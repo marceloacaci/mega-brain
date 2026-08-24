@@ -176,3 +176,65 @@ def backlinks_cached(vault, path, limit=NOTE_LIMIT, ttl=_BL_DEFAULT_TTL):
             _BL_CACHE.clear()  # politica simples: evita crescimento ilimitado
         _BL_CACHE[key] = {"mtime": mtime, "data": data, "built_at": time.time()}
     return data, False
+
+
+# ---------------------------------------------------------------------------
+# S17-B: orfas de ENTRADA — notas que ninguem linka.
+# IMPORTANTE: implementado em UMA passada O(n) (indice de nomes + contagem de
+# links por alvo). Chamar backlinks() por nota seria O(n^2) de I/O — o mesmo
+# defeito que fez /graph levar 60s no vault real (P16.2).
+# ---------------------------------------------------------------------------
+def orphans_in(vault, limit=NOTE_LIMIT):
+    """Lista as notas que NAO recebem nenhum wikilink (orfas de entrada).
+
+    Diferente das "notas orfas" do dashboard (grau 0 no /graph, que considera
+    tambem arestas semanticas e links de SAIDA): aqui e' estritamente
+    "ninguem aponta para ela" — o sinal de que a nota esta invisivel no vault.
+
+    Returns:
+        dict: {"total_notas", "total_orfas", "orphans":[{"path","title"}]}
+    """
+    notes = list(_iter_notes(vault, limit=limit))
+    # nome (stem/titulo, lower) -> rel  |  e rel -> titulo
+    lookup = {}
+    titles = {}
+    for rel, stem, text in notes:
+        t = _title_of(text, stem)
+        titles[rel] = t
+        lookup.setdefault(stem.lower(), rel)
+        lookup.setdefault(t.lower(), rel)
+    linked = set()
+    for rel, _stem, text in notes:
+        body = _strip_code(text)
+        for raw in WIKILINK_RE.findall(body):
+            if "${" in raw or "{{" in raw:
+                continue
+            trel = lookup.get(_link_target(raw))
+            if trel and trel != rel:  # auto-link nao salva a nota
+                linked.add(trel)
+    orph = [{"path": rel, "title": titles[rel]}
+            for rel, _s, _t in notes if rel not in linked]
+    orph.sort(key=lambda x: x["path"])
+    return {"total_notas": len(notes), "total_orfas": len(orph),
+            "orphans": orph}
+
+
+_ORPH_CACHE = {"key": None, "mtime": 0.0, "data": None, "built_at": 0.0}
+_ORPH_LOCK = threading.Lock()
+
+
+def orphans_in_cached(vault, limit=NOTE_LIMIT, ttl=_BL_DEFAULT_TTL):
+    """Versao cacheada de orphans_in(). Retorna (dict, foi_cacheado)."""
+    key = (os.path.abspath(vault), int(limit))
+    with _ORPH_LOCK:
+        c = _ORPH_CACHE
+        if c["key"] == key and c["data"] is not None:
+            sig = _vault_mtime_signature(vault)
+            if sig[0] == c["mtime"] and (time.time() - c["built_at"]) < ttl:
+                return c["data"], True
+    data = orphans_in(vault, limit=limit)
+    mtime, _ = _vault_mtime_signature(vault)
+    with _ORPH_LOCK:
+        _ORPH_CACHE.update({"key": key, "mtime": mtime, "data": data,
+                            "built_at": time.time()})
+    return data, False

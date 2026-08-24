@@ -57,14 +57,14 @@ from vault_stats import count_by_dir, count_by_dir_cached  # noqa: E402
 # v2.0 — Inovação: semântica, compressão, swarm e LLM local (todos opcionais,
 # com fallback heurístico quando Ollama/embeddings não estão disponíveis).
 # ---------------------------------------------------------------------------
-from semantic import related_notes, suggest  # noqa: E402
+from semantic import related_notes, suggest, related_cached, suggest_cached  # noqa: E402
 from compress import compress_text, compress_note  # noqa: E402
 from swarm import run_swarm  # noqa: E402
 from llm_local import reason  # noqa: E402
 from graph import build_graph_cached  # noqa: E402
 from recent import recent_notes, recent_notes_cached  # noqa: E402
 from tags import tag_counts, tag_counts_cached  # noqa: E402
-from backlinks import backlinks, backlinks_cached  # noqa: E402
+from backlinks import backlinks, backlinks_cached, orphans_in_cached  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Observabilidade (Sprint 5 / M3): metricas + cache de /search (TTL).
@@ -383,6 +383,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send({"tags": data, "cached": was_cached})
             except Exception as e:
                 return self._send({"error": f"tags failed: {e}"}, 500)
+        if u.path == "/orphans-in":
+            # S17-B: notas que NINGUEM linka (orfas de entrada). Uma passada O(n).
+            try:
+                with _METRICS_LOCK:
+                    _METRICS["mcp_requests_total"] += 1
+                data, was_cached = orphans_in_cached(VAULT, ttl=_CACHE_TTL)
+                data["cached"] = was_cached
+                return self._send(data)
+            except Exception as e:
+                return self._send({"error": f"orphans-in failed: {e}"}, 500)
         if u.path == "/backlinks":
             # S17: quem aponta para esta nota (vizinhanca de entrada, sem grafo inteiro).
             try:
@@ -428,7 +438,10 @@ class Handler(BaseHTTPRequestHandler):
                 k = int(urllib.parse.parse_qs(u.query).get("k", ["5"])[0])
                 with _METRICS_LOCK:
                     _METRICS["mcp_requests_total"] += 1
-                return self._send({"path": p, "related": related_notes(VAULT, p, k=k)})
+                # S19: cache por mtime/TTL (padrao S14/S15) evita re-varredura do vault.
+                data, was_cached = related_cached(VAULT, p, k=k, ttl=_CACHE_TTL)
+                out = {"path": p, "related": data, "cached": was_cached}
+                return self._send(out)
             except Exception as e:
                 # traversal (semantic.VaultPathError) -> 400, igual às rotas de escrita
                 if type(e).__name__ == "VaultPathError":
@@ -440,7 +453,10 @@ class Handler(BaseHTTPRequestHandler):
                 k = int(urllib.parse.parse_qs(u.query).get("k", ["5"])[0])
                 with _METRICS_LOCK:
                     _METRICS["mcp_requests_total"] += 1
-                return self._send({"query": q, "suggestions": suggest(VAULT, q, k=k)})
+                # S19: cache por mtime/TTL (padrao S14/S15).
+                data, was_cached = suggest_cached(VAULT, q, k=k, ttl=_CACHE_TTL)
+                out = {"query": q, "suggestions": data, "cached": was_cached}
+                return self._send(out)
             except Exception as e:
                 return self._send({"error": f"suggest failed: {e}"}, 500)
         if u.path == "/compress":

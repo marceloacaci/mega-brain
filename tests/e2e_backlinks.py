@@ -124,6 +124,19 @@ def main():
         st5, d5 = get("/backlinks?path=" + urllib.parse.quote("../../secret.md"))
         check(st5 == 400, "traversal -> 400 (got %s)" % st5)
         check(st5 != 200, "traversal NUNCA retorna 200")
+
+        # S17-B: /orphans-in (notas que ninguem linka)
+        st6, d6 = get("/orphans-in")
+        check(st6 == 200, "GET /orphans-in -> 200 (got %s)" % st6)
+        op = {x["path"] for x in d6.get("orphans", [])}
+        check(d6.get("total_notas") == 4, "total_notas=4 (got %r)" % d6.get("total_notas"))
+        check("10_MEGA_BRAIN/Nada.md" in op, "Nada.md e' orfa de entrada")
+        check("70_MOCS/MOC.md" in op, "MOC linka mas nao e' linkada -> orfa")
+        check("10_MEGA_BRAIN/Alvo.md" not in op, "Alvo recebe links -> nao orfa")
+        check(d6.get("cached") is False, "/orphans-in 1a chamada nao cacheada")
+        st7, d7 = get("/orphans-in")
+        check(st7 == 200 and d7.get("cached") is True,
+              "/orphans-in 2a chamada do cache (cached=%r)" % d7.get("cached"))
     finally:
         try:
             proc.terminate()  # encerra APENAS o server que este teste subiu

@@ -11,11 +11,13 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.abspath(os.path.join(HERE, "..", "80_SYSTEM", "SCRIPTS")))
 
-from backlinks import backlinks, backlinks_cached, _BL_CACHE  # noqa: E402
+from backlinks import (backlinks, backlinks_cached, orphans_in,  # noqa: E402
+                       orphans_in_cached, _BL_CACHE, _ORPH_CACHE)
 
 FAILS = []
 
@@ -106,6 +108,58 @@ def main():
         check(d3["total"] == 3, "novo backlink detectado (total 3, got %r)" % d3["total"])
     finally:
         shutil.rmtree(v, ignore_errors=True)
+
+    # --- S17-B: orfas de entrada (notas que ninguem linka) ---
+    v2 = make_vault()
+    try:
+        o = orphans_in(v2)
+        paths = {x["path"] for x in o["orphans"]}
+        check(o["total_notas"] == 6, "conta as 6 notas do fixture (got %r)" % o["total_notas"])
+        check("10_MEGA_BRAIN/Solto.md" in paths, "nota sem ninguem linkando e' orfa de entrada")
+        check("10_MEGA_BRAIN/Alvo.md" not in paths, "Alvo NAO e' orfa (recebe links)")
+        check("70_MOCS/MOC.md" in paths, "MOC linka mas nao e' linkada -> orfa de entrada")
+        check("10_MEGA_BRAIN/Doc.md" in paths,
+              "nota cujo unico link recebido esta em codigo continua orfa")
+        check(o["total_orfas"] == len(o["orphans"]), "total_orfas == len(orphans)")
+        check(o["orphans"] == sorted(o["orphans"], key=lambda x: x["path"]),
+              "orfas ordenadas por path")
+        check(all("title" in x for x in o["orphans"]), "cada orfa tem title")
+
+        # auto-link nao salva a nota da lista de orfas
+        with open(os.path.join(v2, "10_MEGA_BRAIN", "Solto.md"), "a",
+                  encoding="utf-8") as fh:
+            fh.write("\n[[Solto]]\n")
+        o2 = orphans_in(v2)
+        check("10_MEGA_BRAIN/Solto.md" in {x["path"] for x in o2["orphans"]},
+              "auto-link NAO remove a nota das orfas de entrada")
+
+        # cache
+        _ORPH_CACHE.update({"key": None, "data": None})
+        _, oc1 = orphans_in_cached(v2)
+        _, oc2 = orphans_in_cached(v2)
+        check(oc1 is False and oc2 is True, "cache de orphans_in: miss depois hit")
+
+        # PERF (P16.2): uma passada O(n) — nao pode reler o vault por nota.
+        # Com 60 notas, orphans_in deve custar MUITO menos que 60 backlinks().
+        big = tempfile.mkdtemp(prefix="mb_orphperf_")
+        try:
+            for i in range(60):
+                with open(os.path.join(big, "N%02d.md" % i), "w",
+                          encoding="utf-8") as fh:
+                    fh.write("# N%02d\n\n[[N%02d]]\n" % (i, (i + 1) % 60))
+            t0 = time.time()
+            orphans_in(big)
+            t_one = time.time() - t0
+            t0 = time.time()
+            for i in range(60):
+                backlinks(big, "N%02d.md" % i)
+            t_n = time.time() - t0
+            check(t_one < max(t_n / 4.0, 0.05),
+                  "orphans_in e' O(n): %.3fs vs %.3fs de 60 backlinks()" % (t_one, t_n))
+        finally:
+            shutil.rmtree(big, ignore_errors=True)
+    finally:
+        shutil.rmtree(v2, ignore_errors=True)
 
     print()
     if FAILS:
