@@ -7,6 +7,7 @@ Expõe operações do cofre Obsidian como endpoints JSON:
   GET  /search?q=TERMO               -> lista de notas que contêm TERMO (com cache TTL)
   GET  /metrics                      -> métricas Prometheus (M3 Observabilidade)
   GET  /validate                     -> validacao continua do vault (M4 Extensibilidade)
+  GET  /recent?limit=N&days=D         -> notas modificadas mais recentemente (utilitário)
   GET  /related?path=P&k=5           -> notas relacionadas (v2.0 semântica, fallback Jaccard)
   GET  /suggest?q=Q&k=5              -> sugestão de notas por query (v2.0)
   GET  /compress?path=P&max_tokens=N -> compressão de contexto (v2.0)
@@ -60,6 +61,7 @@ from compress import compress_text, compress_note  # noqa: E402
 from swarm import run_swarm  # noqa: E402
 from llm_local import reason  # noqa: E402
 from graph import build_graph_cached  # noqa: E402
+from recent import recent_notes  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Observabilidade (Sprint 5 / M3): metricas + cache de /search (TTL).
@@ -338,6 +340,20 @@ class Handler(BaseHTTPRequestHandler):
                 _METRICS["mcp_requests_total"] += 1
                 _METRICS["mcp_notes_total"] = total
             return self._send({"total": total, "by_dir": by_dir})
+        if u.path == "/recent":
+            # Notas modificadas mais recentemente (utilitário somente-leitura).
+            try:
+                try:
+                    lim = int(urllib.parse.parse_qs(u.query).get("limit", ["10"])[0])
+                except ValueError:
+                    lim = 10
+                cd = urllib.parse.parse_qs(u.query).get("days", [""])[0]
+                cutoff = float(cd) if cd else None
+                with _METRICS_LOCK:
+                    _METRICS["mcp_requests_total"] += 1
+                return self._send({"recent": recent_notes(VAULT, limit=lim, cutoff_days=cutoff)})
+            except Exception as e:
+                return self._send({"error": f"recent failed: {e}"}, 500)
         if u.path == "/activity":
             # Heatmap de atividade: conta notas diarias (20_DAILY_NOTES) por data.
             try:

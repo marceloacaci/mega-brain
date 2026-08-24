@@ -183,6 +183,20 @@
           <div class="ui fluid input"><input id="grafanaUrl" value="http://localhost:3000" style="padding:0.4em; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--txt);" /></div>
           <iframe id="grafana" style="width:100%; height:220px; border:1px solid var(--border); border-radius:8px; margin-top:0.6em; background:var(--panel);" title="Grafana"></iframe>
         </div>
+
+        <div class="panel">
+          <h4 class="ui header"><i class="history icon"></i> Notas Recentes (últimas modificações)</h4>
+          <div class="ui fluid action input" style="margin-bottom:0.5em;">
+            <select id="recentDays" style="flex:1; padding:0.4em; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--txt);">
+              <option value="">qualquer idade</option>
+              <option value="1">últimas 24h</option>
+              <option value="7">últimos 7 dias</option>
+              <option value="30">últimos 30 dias</option>
+            </select>
+            <button class="ui button action" id="recentBtn"><i class="refresh icon"></i> Atualizar</button>
+          </div>
+          <div id="recentList" style="max-height:240px; overflow:auto;">carregando…</div>
+        </div>
       </div>
     </div>
     <div class="ui tiny message" id="status"></div>
@@ -347,6 +361,24 @@
       tip.style.left=x+'px'; tip.style.top=y+'px'; }
     function hideTip(){ tip.style.display='none'; }
 
+    async function loadRecent(){
+      try{
+        const days = $('#recentDays').value;
+        const qs = days ? `?limit=15&days=${encodeURIComponent(days)}` : '?limit=15';
+        const r = await fetch(`${MCP}/recent${qs}`);
+        const data = await r.json();
+        // Contrato do MCP: /recent retorna {recent:[{path, mtime, age_days, type}]}.
+        const rec = (data.recent || []);
+        if(!rec.length){ $('#recentList').innerHTML='<div style="color:var(--muted)">nenhuma nota recente</div>'; return; }
+        const fmt = (d)=>{ const a=Math.max(0,d); if(a<1) return `${Math.round(a*24*60)} min`; if(a<30) return `${a.toFixed(1)} d`; return `${Math.round(a)} d`; };
+        $('#recentList').innerHTML = rec.map(x=>`<div style="padding:0.3em 0; border-bottom:1px solid var(--border);">`
+          + `<div style="font-weight:600; color:var(--txt)">${x.path}</div>`
+          + `<div style="font-size:0.75em; color:var(--muted)"><span style="color:var(--accent)">${x.type}</span> · há ${fmt(x.age_days)}</div>`
+          + `</div>`).join('');
+      }catch(e){ $('#recentList').innerHTML='<span style="color:var(--muted)">recentes indisponível</span>'; }
+    }
+    $('#recentBtn').addEventListener('click', loadRecent);
+    $('#recentDays').addEventListener('change', loadRecent);
     $('#exportBtn').addEventListener('click', ()=>{
       const svg=$('#graph').cloneNode(true); svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
       const data='<?xml version="1.0"?>\n'+new XMLSerializer().serializeToString(svg);
@@ -372,7 +404,7 @@
     $('#validateBtn').addEventListener('click', runValidate);
     $('#graph').addEventListener('click', (e)=>{ if(e.target.tagName!=='circle') clearFocus(); });
 
-    health(); loadGraph(); loadMetrics(); loadActivity(); loadGrafana(); testConnection(5);
+    health(); loadGraph(); loadMetrics(); loadActivity(); loadGrafana(); loadRecent(); testConnection(5);
     setInterval(()=>{ health(); loadMetrics(); }, 15000);
   </script>
 </body>

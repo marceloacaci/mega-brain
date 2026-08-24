@@ -122,16 +122,29 @@ v2.1.0 (S10) atingidos em 2026-08-23. Ativação de IA real: `OLLAMA_URL`+`OLLAM
   - Novo `tests/test_shared_modules.py` (não-tautológico: reverter confinamento/teto/duplicação
     faz o teste falhar). Suítes: **19/19 verdes** (era 16/16). FCS do dashboard revalidado
     (P10–P14) no browser sem erros runtime.
+- **Sprint 14 — Notas Recentes (novo recurso + FCS)** (DONE, 2026-08-24): endpoint `/recent`
+  (read-only, sem superfície de segurança) + painel "Notas Recentes" no dashboard.
+  - `recent.py`: `recent_notes(vault, limit, cutoff_days)` — varredura única, ordena por
+    mtime desc, mapeia tipo (espelha `graph`), reusa `NOTE_LIMIT`, `limit<=0`→1 (fail-safe).
+  - `mcp_obsidian_server.py`: rota `GET /recent?limit=N&days=D` (try/except → 500, P8).
+  - `web/dashboard.html`: painel inline (P12) na coluna direita com `<select>` de janela
+    (qualquer/24h/7d/30d) + `loadRecent()` consumindo o contrato `{recent:[{path,mtime,age_days,type}]}`
+    (P13). `node --check` inline OK; `wc -c`=27163, termina em `</html>` (P14).
+  - `tests/test_recent.py` (13 checagens) + `tests/e2e_recent.py` (4 checagens), ambos não-tautológicos.
+  - FCS no browser: `loadRecent()` lista 5 itens (1º = mais recente, "há 0 min"); `<select=7>` exclui
+    nota de 10 dias; search/orphans/validate intactos. Suítes: **21/21 verdes** (era 19/19).
 
 ### Cobertura de testes (inegociavel do `docs/quality.md`)
-- Suíte completa (`tests/run_all.py`): **19/19 suítes verdes**
+- Suíte completa (`tests/run_all.py`): **21/21 suítes verdes**
 - Smoke MCP: **8/8** · Debounce: **4/4** · E2E validação M4: **2/2** · E2E v2.0: **5/5** ·
   E2E Ollama S10-A: **SKIP** (offline) · E2E Dashboard S10-B: **PASS** ·
   E2E Governanca S10-C: **PASS** · E2E Seguranca S11: **5/5** · E2E integração: **3/3** ·
-  E2E resiliência M5: **3/3** · E2E hooks: **4/4** · Unidade validate links S11: **6/6** ·
-  Unidade governance PII S11: **20/20** · Unidade compress contrato S11: **22/22** ·
-  - Unidade segurança v2 S12: **7/7** · Unidade dashboard orfãos S12: **4/4** ·
-    Unidade modulos compartilhados S13: **PASS**
+  E2E resiliência M5: **3/3** · E2E hooks: **4/4** · E2E notas recentes S14: **4/4** ·
+  Unidade validate links S11: **6/6** · Unidade governance PII S11: **20/20** ·
+  Unidade compress contrato S11: **22/22** · Unidade segurança v2 S12: **7/7** ·
+  Unidade dashboard orfãos S12: **4/4** · Unidade teto notas S12: **PASS** ·
+  Unidade predictive traversal S12: **PASS** · Unidade modulos compartilhados S13: **PASS** ·
+  Unidade notas recentes S14: **13/13**
   - CI: `ci-cd.yml` roda lint + SAST + test-linux (run_all) + test-windows (E2E hooks+backup) + build Docker.
 
 [[gantt]]

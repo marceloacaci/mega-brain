@@ -35,6 +35,8 @@ SUITE = [
     ("Unidade teto notas semantic==graph S12", ["python", "tests/test_note_limit_consistency.py"]),
     ("Unidade predictive traversal S12", ["python", "tests/test_predictive_security.py"]),
     ("Unidade modulos compartilhados S13 (const+guards)", ["python", "tests/test_shared_modules.py"]),
+    ("Unidade notas recentes S14 (ordenacao+limit+cutoff)", ["python", "tests/test_recent.py"]),
+    ("E2E notas recentes S14 (rota /recent)", ["python", "tests/e2e_recent.py"]),
     ("E2E integração (fluxo fim-a-fim)", ["python", "tests/e2e_integration.py"]),
 ]
 if not IN_CI:
