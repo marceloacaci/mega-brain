@@ -45,8 +45,10 @@ SUITE = [
     ("E2E backlinks S17 (rota /backlinks)", ["python", "tests/e2e_backlinks.py"]),
     ("Unidade links saida S20 (alias+codigo+auto+quebrado+cache)", ["python", "tests/test_links.py"]),
     ("E2E links saida S20 (rota /links)", ["python", "tests/e2e_links.py"]),
+    ("Unidade cache atividade S22 (heatmap mtime/TTL)", ["python", "tests/test_activity_cache.py"]),
     ("Unidade cache semantico S19 (related+suggest)", ["python", "tests/test_semantic_cache.py"]),
     ("E2E cache semantico S19 (rotas /related+/suggest)", ["python", "tests/e2e_semantic_cache.py"]),
+    ("E2E integração (fluxo fim-a-fim)", ["python", "tests/e2e_integration.py"]),
     ("E2E integração (fluxo fim-a-fim)", ["python", "tests/e2e_integration.py"]),
 ]
 if not IN_CI:

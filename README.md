@@ -237,7 +237,9 @@ mega-brain/
 └── README.md                    # Este arquivo
 ```
 
-> Documentação detalhada: [`docs/architecture.md`](docs/architecture.md),
+> Documentação detalhada: [`docs/api-reference.md`](docs/api-reference.md) (contrato de
+> TODAS as rotas do MCP — leia antes de consumir o servidor),
+> [`docs/architecture.md`](docs/architecture.md),
 > [`docs/uml/`](docs/uml/), [`docs/sprints/`](docs/sprints/),
 > [`docs/quality.md`](docs/quality.md), [`docs/brainstorm.md`](docs/brainstorm.md).
 
