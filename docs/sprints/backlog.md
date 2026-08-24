@@ -74,7 +74,17 @@
   - **Quando** o MCP sobe num fixture
   - **Então** todos os checks (health/write/read/search/stats/rename/move) retornam PASS
 
+- **US-11** Como *mantenedor*, eu quero que as varreduras do vault ignorem pastas que não são notas (tests/, node_modules/, .git), para que `/search`, `/suggest`, `/recent`, `/tags`, `/validate` e os caches não sejam poluídos pelo próprio repositório de código.
+  - **Dado que** o repo MEGA BRAIN **é** o vault (caminhos de código coexistem com notas)
+  - **Quando** `VAULT_SKIP_DIRS` (`constants.py`) é aplicado em todos os `os.walk` via `prune_vault_dirs(dirs)`
+  - **Então** `GET /search?q=test` retorna 0 hits em `tests/`, e `reason()` não sugere `tests/fixture/*.md` (corrigido em S24; teste anti-regressão em `tests/test_vault_skip_dirs.py`)
+
 ---
+
+## Hardening contínuo (S11–S24) — registro de déficits reais corrigidos
+- **S24 (2026-08-24)**: varreduras do vault incluíam `tests/`, `node_modules/`, `.git` como notas de conteúdo → poluía `/search`, `/suggest`, `/recent`, `/tags`, `/validate` e assinaturas de cache (ex.: `reason()` sugeria `tests/fixture/70_MOCS/MOC_Teste.md`). Centralizado `VAULT_SKIP_DIRS` + `prune_vault_dirs()` em `constants.py` e aplicado nos 8 pontos de `os.walk` (activity, backlinks×2, predictive, recent×2, tags×2, validate_vault×2, vault_stats×2, server.search). 34/34 suites verdes; CI canônico success.
+
+[[sprint-1]]
 
 ## Critérios de Aceitação (padrão Gherkin) — exemplos transversais
 - **Performance**: Dado que o vault tem < 5000 notas, Quando `/search` é chamado, Então responde em < 500ms (sem cache) ou < 50ms (com cache Redis).

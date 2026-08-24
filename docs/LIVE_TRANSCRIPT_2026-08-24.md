@@ -737,3 +737,15 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
 - REGRAS: nao matei processos; nao comitei 264 snapshots 50_METRICS/*. Proximo
   alvo seguro: watcher.py debounce / reindex_hybrid.ps1, ou documentar
   cronograma 30_PROJECTS + atualizar docs/API.
+
+### S24 (doc) — backlog registra hardening de varredura (US-11 + secao S11-S24)
+- Adicionei US-11 (E6/Qualidade) ao docs/sprints/backlog.md documentando o
+  VAULT_SKIP_DIRS/prune_vault_dirs e o cenario de aceitacao (search?q=test -> 0
+  hits em tests/). Mais secao 'Hardening continuo (S11-S24)' resumindo o S24.
+  Conteudo DERIVADO do trabalho real (nao inventado). Apenas doc; run_all
+  permanece 34/34 verde.
+- ESTADO FINAL DESTA ITERACAO: 3 commits pushados (7f1ee29 S24-base, 1e2fffa
+  S24-sistemico, + este doc). CI canonico (Princípio 2) confirmado success
+  para 1e2fffa (5/5 jobs). 34/34 suites verdes. Nao matei processos; nao
+  comitei 264 snapshots 50_METRICS/*. Proximos alvos seguros possiveis:
+  refatorar swarm.py/llm_local.governance, ou auditar 80_SYSTEM/HOOKS/*.ps1.
