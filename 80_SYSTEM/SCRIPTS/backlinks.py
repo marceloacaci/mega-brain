@@ -238,3 +238,102 @@ def orphans_in_cached(vault, limit=NOTE_LIMIT, ttl=_BL_DEFAULT_TTL):
         _ORPH_CACHE.update({"key": key, "mtime": mtime, "data": data,
                             "built_at": time.time()})
     return data, False
+
+
+# ---------------------------------------------------------------------------
+# Links de SAIDA (S20): os wikilinks que UMA nota emite — o complemento
+# simetrico dos backlinks. Resolve cada alvo para uma nota existente (por
+# stem/titulo) ou marca como nao-resolvido (link quebrado / a criar).
+# Reusa _iter_notes/_link_target/_title_of/WIKILINK_RE/_strip_code.
+# ---------------------------------------------------------------------------
+def _name_index(vault, limit=NOTE_LIMIT):
+    """Indice {nome_lower: rel} e {rel: titulo} de todas as notas."""
+    lookup = {}
+    titles = {}
+    for rel, stem, text in _iter_notes(vault, limit=limit):
+        t = _title_of(text, stem)
+        titles[rel] = t
+        lookup.setdefault(stem.lower(), rel)
+        lookup.setdefault(t.lower(), rel)
+    return lookup, titles
+
+
+def links(vault, path, limit=NOTE_LIMIT):
+    """Lista os wikilinks de SAIDA da nota `path`.
+
+    Args:
+        vault: caminho do vault.
+        path: caminho relativo da nota (ex. "10_MEGA_BRAIN/X.md").
+        limit: teto de notas varridas (default NOTE_LIMIT).
+
+    Returns:
+        dict {"path", "title", "total", "links":[{
+            "target": raw_alvo, "resolved": bool,
+            "note": rel_resolvido|None, "title": titulo|None, "count": int}]}
+
+    Raises:
+        VaultPathError: se `path` tentar sair do vault.
+        FileNotFoundError: se a nota alvo nao existir.
+    """
+    fp = vault_path(vault, path)  # confina (levanta VaultPathError)
+    if not os.path.isfile(fp):
+        raise FileNotFoundError(path)
+    rel_target = os.path.relpath(fp, os.path.abspath(vault)).replace("\\", "/")
+    stem = os.path.basename(rel_target)[:-3]
+    try:
+        with open(fp, encoding="utf-8", errors="ignore") as fh:
+            text = fh.read()
+    except OSError:
+        text = ""
+    target_title = _title_of(text, stem)
+
+    lookup, titles = _name_index(vault, limit=limit)
+    seen = {}
+    body = _strip_code(text)  # exemplos em codigo nao sao links reais (P16.3)
+    for raw in WIKILINK_RE.findall(body):
+        if "${" in raw or "{{" in raw:
+            continue  # placeholder de template (Excalidraw etc.) — P16.3
+        tgt = _link_target(raw)
+        if tgt == stem.lower():
+            continue  # auto-link nao conta como saida util
+        if tgt in seen:
+            seen[tgt]["count"] += 1
+            continue
+        resolved_rel = lookup.get(tgt)
+        seen[tgt] = {
+            "target": raw.split("|", 1)[0].split("#", 1)[0].strip(),
+            "resolved": resolved_rel is not None,
+            "note": resolved_rel,
+            "title": titles.get(resolved_rel) if resolved_rel else None,
+            "count": 1,
+        }
+    out = sorted(seen.values(), key=lambda x: (-x["count"], (x["note"] or x["target"]).lower()))
+    return {"path": rel_target, "title": target_title,
+            "total": len(out), "links": out}
+
+
+_LINKS_CACHE = {}
+_LINKS_LOCK = threading.Lock()
+_LINKS_MAX_ENTRIES = 64
+
+
+def links_cached(vault, path, limit=NOTE_LIMIT, ttl=_BL_DEFAULT_TTL):
+    """Versao cacheada de links(). Retorna (dict, foi_cacheado).
+
+    Erros (VaultPathError/FileNotFoundError) NAO sao cacheados — propagam.
+    """
+    key = (os.path.abspath(vault), (path or "").replace("\\", "/").strip("/"),
+           int(limit))
+    with _LINKS_LOCK:
+        entry = _LINKS_CACHE.get(key)
+        if entry:
+            sig = _vault_mtime_signature(vault)
+            if sig[0] == entry["mtime"] and (time.time() - entry["built_at"]) < ttl:
+                return entry["data"], True
+    data = links(vault, path, limit=limit)
+    mtime, _ = _vault_mtime_signature(vault)
+    with _LINKS_LOCK:
+        if len(_LINKS_CACHE) >= _LINKS_MAX_ENTRIES:
+            _LINKS_CACHE.clear()
+        _LINKS_CACHE[key] = {"mtime": mtime, "data": data, "built_at": time.time()}
+    return data, False

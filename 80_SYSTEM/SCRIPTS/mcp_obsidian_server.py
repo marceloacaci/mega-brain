@@ -64,7 +64,7 @@ from llm_local import reason  # noqa: E402
 from graph import build_graph_cached  # noqa: E402
 from recent import recent_notes, recent_notes_cached  # noqa: E402
 from tags import tag_counts, tag_counts_cached  # noqa: E402
-from backlinks import backlinks, backlinks_cached, orphans_in_cached  # noqa: E402
+from backlinks import backlinks, backlinks_cached, orphans_in_cached, links_cached  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Observabilidade (Sprint 5 / M3): metricas + cache de /search (TTL).
@@ -412,6 +412,24 @@ class Handler(BaseHTTPRequestHandler):
                 if type(e).__name__ == "VaultPathError":
                     return self._send({"error": f"path invalido: {e}"}, 400)
                 return self._send({"error": f"backlinks failed: {e}"}, 500)
+        if u.path == "/links":
+            # S20: links de SAIDA da nota (complemento simetrico dos backlinks).
+            try:
+                qp = urllib.parse.parse_qs(u.query)
+                rel = qp.get("path", [""])[0]
+                if not rel:
+                    return self._send({"error": "parametro 'path' obrigatorio"}, 400)
+                with _METRICS_LOCK:
+                    _METRICS["mcp_requests_total"] += 1
+                data, was_cached = links_cached(VAULT, rel, ttl=_CACHE_TTL)
+                data["cached"] = was_cached
+                return self._send(data)
+            except FileNotFoundError:
+                return self._send({"error": "nota nao encontrada"}, 404)
+            except Exception as e:
+                if type(e).__name__ == "VaultPathError":
+                    return self._send({"error": f"path invalido: {e}"}, 400)
+                return self._send({"error": f"links failed: {e}"}, 500)
         if u.path == "/activity":
             # Heatmap de atividade: conta notas diarias (20_DAILY_NOTES) por data.
             try:

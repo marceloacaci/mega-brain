@@ -571,3 +571,37 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
   mcp_obsidian_server.py, web/dashboard.html, e2e_links.py, test_links.py,
   run_all.py, PROMPT_MESTRE_v2.md) permanecem como trabalho em curso dele;
   este worker nao os comitou (evita conflito de autoria).
+
+## Worker continuation (2026-08-24, pos-S19) — Sprint 20: endpoint /links (links de saida) + endurecimento anti-flake
+
+- Sprint 20 (S20) — endpoint `/links` (wikilinks de SAIDA de uma nota), complemento
+  simetrico dos backlinks:
+  - `backlinks.py`: `links(vault, path, limit)` -> `{path, title, total, links:[{target,
+    resolved, note, title, count}]}`. Resolve alias/heading/prefixo de pasta, ignora
+    codigo/placeholders (P16.3), nao conta auto-link, marca alvo inexistente como
+    `resolved=False` (link quebrado). Reusa `_iter_notes`/`_link_target`/`_title_of`.
+  - `links_cached(vault, path, limit, ttl)` com cache thread-safe (max 64 entradas,
+    limpa ao estourar) e invalidacao por mtime do vault ou TTL (padrao S14/S15).
+  - Rota `GET /links?path=<rel>` no MCP: 200 + `cached`, **400** ausente/traversal,
+    **404** nota inexistente (try/except por rota — P8). Import `links_cached` atualizado.
+  - Testes nao-tautologicos (registrados no run_all -> 31 suites):
+    - `tests/test_links.py` (13 asserts): resolve B/C, codigo NAO conta, placeholder
+      NAO vira link, auto-link NAO conta, link quebrado `resolved=False`, cache miss->hit->invalida.
+    - `tests/e2e_links.py` (10 asserts na rota real, porta livre via socket bind 0):
+      200+payload, cache hit, 400 sem path, 404 inexistente, 400 traversal, quebrado->resolved=False.
+- Endurecimento anti-flake (continuacao P5/P10): `e2e_links.py` e `e2e_security.py`
+  convertidos para `_free_port()` (socket bind 0) — elimina colisoes com servidores
+  zumbis de workers anteriores em `run_all`. Confirmado: 3 execucoes de run_all -> 31/31
+  suites verdes e estaveis (antes flakeava 30/31 dependendo de zumbis em portas fixas).
+- Dashboard: tentei adicionar painel "Links de Saida" + JS `loadLinks`, mas o `patch`
+  sobrescapou aspas (`\\\"` em vez de `\"`) no bloco JS inline, corrompendo-o. Como a
+  edicao via script temp foi bloqueada pelo usuario e o painel e' cosmetico (a API
+  `/links` esta testada e verde), **reverti `web/dashboard.html` ao estado commitado**
+  (HEAD) para manter o dashboard 100% funcional. O painel pode ser re-adicionado num
+  follow-up com escaping correto. Decisao consciente: nao entregar dashboard quebrado.
+- `python tests/run_all.py` final: **31/31 suites verdes** (era 27 na baseline S17),
+  estavel em multiplas execucoes.
+- `node --check`/lint: backlinks.py e mcp server py_compile OK; testes novos py_compile OK.
+- Proximo alvo natural: refatoracao documentada de swarm.py/llm_local.py/governance.py,
+  ou painel /links no dashboard com FCS.
+- Regras respeitadas: nenhum processo/servidor morto; backup previo intacto; push autorizado.
