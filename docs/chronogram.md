@@ -235,3 +235,27 @@ Próximas melhorias seguras identificadas (não concluídas — baixo risco/baix
     - DEFEITO corrigido por worker autônomo: `semantic.py` usava `time.time()` sem
       `import time` -> NameError; rotas cached falhavam. Fix cirúrgico (`import time`).
     - Suítes: **27/27 → 29/29 verdes**.
+  - **Sprint 20 — `/links` (saída)** (DONE): `backlinks.links()` (resolve alias/heading/
+    pasta, ignora código/placeholder, não conta auto-link, marca `resolved=False`),
+    `links_cached`, rota `GET /links` (200/400/404), painel "Links de Saída" no dashboard.
+    `test_links.py` (13) + `e2e_links.py` (10, porta livre). Suítes: **29/29 → 31/31**.
+  - **Sprint 21 — API reference + contrato** (DONE): `docs/api-reference.md` (25 rotas,
+    derivada do código) + `tests/e2e_api_contract.py` (12 rotas, não-tautológico: injetar
+    `hits`→`results` acusa 3 FALHAS). Suítes: **31/31 → 32/32**.
+  - **Sprint 22 — Cache `/activity`** (DONE): `activity.activity_cached` (mtime/TTL);
+    rota `GET /activity` cacheada; `test_activity_cache.py` (9). Suítes: **33/33 verdes**.
+  - **Sprint 23 — Órfãs `by_dir`** (DONE, worker irmão): `backlinks.orphans_in` agrega
+    por pasta; UI capada (`ORPH_CAP=40`). Vault real: 317 órfãs, 266 em `50_METRICS`
+    (auto-geradas) → ~51 acionáveis. FCS validado (node --check rc=0).
+  - **Sprint 24 — VAULT_SKIP_DIRS + `by_tipo`** (DONE): repo==vault → centraliza
+    `VAULT_SKIP_DIRS`/`prune_vault_dirs` em `constants.py` e aplica em 8 módulos que
+    varrem; `/validate` devolve `by_tipo`; 5 problemas reais zerados (0-byte, link
+    quebrado). `test_vault_skip_dirs.py` (anti-regressão). Suítes: **34/34 verdes**.
+  - **Sprint 25 — Watcher + swarm** (DONE): `watcher.handle` ignora `VAULT_SKIP_DIRS`
+    (P30); `swarm` usa `suggest_cached`/`validate_cached`. `test_watcher_debounce.py`
+    + caso `skip_dirs_not_logged`. Suítes: **34/34 verdes** (estável).
+
+  **ESTADO FINAL 2026-08-24 (workers deleg_fba387e7 / 8eb3dea8 / 55412f9a): 34/34
+  suítes verdes, CI canônica 5/5 jobs success, FCS do dashboard sem runtime errors.
+  Tags: v1.0.0 / v2.0.0 / v2.1.0. Próximos alvos seguros: cronograma 30_PROJECTS,
+  audit de 80_SYSTEM/HOOKS/*.ps1 (P4 ASCII), ou expansão do swarm (agentes reusam cache).**
