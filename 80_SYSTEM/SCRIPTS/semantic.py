@@ -86,7 +86,7 @@ def _cosine(a, b):
     return dot / (na * nb) if na and nb else 0.0
 
 
-def _vault_notes(vault, limit=400):
+def _vault_notes(vault, limit=600):
     """Gera (rel_path, text) das notas .md (limit p/ performance)."""
     out = []
     for root, _, files in os.walk(vault):
@@ -115,7 +115,7 @@ def _norm_rel(vault, path):
     return os.path.join(os.path.abspath(vault), rel)
 
 
-def related_notes(vault, path, k=5, limit=400):
+def related_notes(vault, path, k=5, limit=600):
     """Notas mais relacionadas a `path` (cosseno de embeddings se Ollama, senão Jaccard).
 
     Levanta VaultPathError se `path` escapar do vault (P16/S11).
@@ -152,7 +152,7 @@ def related_notes(vault, path, k=5, limit=400):
     return [{"path": rel, "score": round(score, 4)} for score, rel in scored[:k]]
 
 
-def suggest(vault, query, k=5, limit=400):
+def suggest(vault, query, k=5, limit=600):
     """Sugere notas que melhor cobrem a `query` (mesma métrica de related_notes)."""
     q_tokens = _tokens(query)
     q_emb = _ollama_embed(query)

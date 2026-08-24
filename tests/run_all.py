@@ -32,6 +32,7 @@ SUITE = [
     ("Unidade compress contrato S11 (22)", ["python", "tests/test_compress_contract.py"]),
     ("Unidade segurança v2 S12 (traversal+On2)", ["python", "tests/test_security_v2.py"]),
     ("Unidade dashboard orfãos S12 (wikilink)", ["python", "tests/test_dashboard_orphans.py"]),
+    ("Unidade teto notas semantic==graph S12", ["python", "tests/test_note_limit_consistency.py"]),
     ("E2E integração (fluxo fim-a-fim)", ["python", "tests/e2e_integration.py"]),
 ]
 if not IN_CI:

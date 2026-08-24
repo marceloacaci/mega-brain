@@ -319,6 +319,15 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
 - `30_PROJECTS/README.md`: roadmap de engenharia aponta para docs/ (cronograma, sprints, transcript).
 - Próximo: refatorações seguras restantes em módulos.
 
-### Iter 7 — Pendente
-- Refatorações seguras restantes (dedup, O(n^2), alinhamento de contratos) em módulos: a fazer.
+### Iter 7 — Refatoração segura: teto de notas semantic==graph
+- DEFEITO REAL (flag P11 no chronograma): `semantic._vault_notes`/`related_notes`/`suggest`
+  usavam `limit=400`, enquanto `graph` usa `limit=600`. Em vaults > 400 notas, o `/graph`
+  incluiria notas que `related_notes`/`suggest` ignorariam -> arestas semanticas inconsistentes.
+- FIX: unificado o teto para **600** em semantic.py (3 defaults). Sem mudança de contrato.
+- NOVO `tests/test_note_limit_consistency.py` (4 checagens): teto sem==graph==600; reverter
+  qualquer default p/ 400 faz o teste FALHAR.
+- `run_all.py`: +1 suíte -> **17/17 verdes** (era 16/16).
+
+### Iter 8 — Pendente
+- Audit final de módulos restantes (watcher.py, config import) e encerramento do worker.
 
