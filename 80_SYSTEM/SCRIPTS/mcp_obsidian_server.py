@@ -61,7 +61,7 @@ from compress import compress_text, compress_note  # noqa: E402
 from swarm import run_swarm  # noqa: E402
 from llm_local import reason  # noqa: E402
 from graph import build_graph_cached  # noqa: E402
-from recent import recent_notes  # noqa: E402
+from recent import recent_notes, recent_notes_cached  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Observabilidade (Sprint 5 / M3): metricas + cache de /search (TTL).
@@ -351,7 +351,9 @@ class Handler(BaseHTTPRequestHandler):
                 cutoff = float(cd) if cd else None
                 with _METRICS_LOCK:
                     _METRICS["mcp_requests_total"] += 1
-                return self._send({"recent": recent_notes(VAULT, limit=lim, cutoff_days=cutoff)})
+                # usa cache por mtime/TTL (P11-style) p/ evitar re-varredura a cada poll
+                data, was_cached = recent_notes_cached(VAULT, limit=lim, cutoff_days=cutoff, ttl=_CACHE_TTL)
+                return self._send({"recent": data, "cached": was_cached})
             except Exception as e:
                 return self._send({"error": f"recent failed: {e}"}, 500)
         if u.path == "/activity":

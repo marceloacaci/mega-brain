@@ -133,6 +133,10 @@ v2.1.0 (S10) atingidos em 2026-08-23. Ativação de IA real: `OLLAMA_URL`+`OLLAM
   - `tests/test_recent.py` (13 checagens) + `tests/e2e_recent.py` (4 checagens), ambos não-tautológicos.
   - FCS no browser: `loadRecent()` lista 5 itens (1º = mais recente, "há 0 min"); `<select=7>` exclui
     nota de 10 dias; search/orphans/validate intactos. Suítes: **21/21 verdes** (era 19/19).
+  - **S14-B — Cache de `/recent`**: `recent_notes_cached(vault, limit, cutoff_days, ttl)` com
+    cache thread-safe invalidado por mtime do vault ou TTL (P11-style); rota expõe flag `cached`.
+    Teste de cache (miss→hit, invalida ao mexer `.md`) adicionado; `test_recent.py`=16 checagens.
+    Sem mudança de contrato de rota/JSON/JS.
 
 ### Cobertura de testes (inegociavel do `docs/quality.md`)
 - Suíte completa (`tests/run_all.py`): **21/21 suítes verdes**

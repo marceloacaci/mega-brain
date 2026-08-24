@@ -91,6 +91,27 @@ def main():
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
+    # 8) cache: primeiro miss, segundo hit; invalida ao mexer num .md
+    import recent as recent_mod
+    dc = tempfile.mkdtemp(prefix="mb_recent_cache_")
+    try:
+        for nm in ("a.md", "b.md", "c.md"):
+            with open(os.path.join(dc, nm), "w", encoding="utf-8") as fh:
+                fh.write("# x\n")
+        _, hit1 = recent_mod.recent_notes_cached(dc, limit=3)
+        _, hit2 = recent_mod.recent_notes_cached(dc, limit=3)
+        check("cache: 1o miss", hit1 is False)
+        check("cache: 2o hit", hit2 is True)
+        # mexer num arquivo -> mtime muda -> proximo acesso e miss
+        time.sleep(0.01)
+        with open(os.path.join(dc, "a.md"), "a", encoding="utf-8") as fh:
+            fh.write("z\n")
+        os.utime(os.path.join(dc, "a.md"), None)
+        _, hit3 = recent_mod.recent_notes_cached(dc, limit=3)
+        check("cache: invalida ao mexer .md", hit3 is False)
+    finally:
+        shutil.rmtree(dc, ignore_errors=True)
+
     print(f"\nRESULTADO: {_PASS} passaram, {_FAIL} falharam")
     return 1 if _FAIL else 0
 

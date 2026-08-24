@@ -15,6 +15,7 @@ Uso:
 """
 import os
 import time
+import threading
 
 from constants import NOTE_LIMIT
 
@@ -37,6 +38,60 @@ _FOLDER_TYPE = {
 def _folder_type(rel):
     top = rel.split("/", 1)[0]
     return _FOLDER_TYPE.get(top, "note")
+
+
+def _vault_mtime_signature(vault):
+    """Retorna (mtime_max, contagem) das notas .md — usado p/ invalidar cache.
+
+    Equivalente a graph._vault_signature mas independente (recent.py nao importa
+    graph). Invalida o cache de /recent quando qualquer .md muda.
+    """
+    newest = 0.0
+    count = 0
+    for root, _, files in os.walk(vault):
+        if ".obsidian" in root or ".trash" in root:
+            continue
+        for f in files:
+            if not f.endswith(".md"):
+                continue
+            try:
+                m = os.path.getmtime(os.path.join(root, f))
+            except OSError:
+                continue
+            if m > newest:
+                newest = m
+            count += 1
+    return newest, count
+
+
+# Cache thread-safe (P11-style) p/ /recent: evita re-varrer o vault a cada
+# poll do dashboard. Invalidado por assinatura de mtime OU TTL.
+_RECENT_CACHE = {"key": None, "mtime": 0.0, "data": None, "built_at": 0.0}
+_RECENT_LOCK = threading.Lock()
+_RECENT_DEFAULT_TTL = 60.0  # segundos
+
+
+def recent_notes_cached(vault, limit=10, cutoff_days=None, ttl=_RECENT_DEFAULT_TTL):
+    """Versão cacheada de recent_notes (invalida por mtime do vault ou TTL).
+
+    A chave do cache inclui (limit, cutoff_days); retorna (lista, foi_cacheado).
+    Thread-safe. Semântica idêntica a recent_notes() quando há miss.
+    """
+    key = (int(limit), cutoff_days)
+    with _RECENT_LOCK:
+        cached = _RECENT_CACHE
+        if cached["key"] == key and cached["data"] is not None:
+            sig = _vault_mtime_signature(vault)
+            if sig[0] == cached["mtime"] and (time.time() - cached["built_at"]) < ttl:
+                return cached["data"], True
+    data = recent_notes(vault, limit=limit, cutoff_days=cutoff_days)
+    mtime, _ = _vault_mtime_signature(vault)
+    with _RECENT_LOCK:
+        _RECENT_CACHE["key"] = key
+        _RECENT_CACHE["mtime"] = mtime
+        _RECENT_CACHE["data"] = data
+        _RECENT_CACHE["built_at"] = time.time()
+    return data, False
 
 
 def recent_notes(vault, limit=10, cutoff_days=None):
