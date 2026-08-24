@@ -340,10 +340,21 @@ criterio "incremental e seguro". Divida remanescente registrada em sprint-11.md.
   (anti-tautologia provada).
 - `run_all.py`: +1 suíte -> **18/18 verdes** (era 17/17).
 
-### Iter 9 — Encerramento do worker (continuação delegada)
-- Total entregue neste worker: 4 commits (6af556e, 60c1c31, 7035a10, 6fe71b4, +pendente)
-  elevando 14/14 -> 18/18 suítes verdes, +4 novas suítes de regressão não-tautológicas.
-- Todos os commits com CI canônica 5/5 jobs success. Live transcript atualizado em cada passo.
-- Próximo worker (re-dispatch) pode atacar: reaproveitar cache de /stats em swarm,
-  ou unificar nota-ceiling numa constante compartilhada (hoje repetido em semantic/graph).
+### Iter 9 (cont) — Portabilidade validate_vault.py
+- `validate_vault.py` (CLI `__main__`) tinha `VAULT` default hardcoded no caminho Windows
+  do dev (anti-padrão P3/P5). Agora resolve via pai do repo (igual predictive.py).
+  Sem risco de traversal (default de linha de comando, não rota web).
+- Commit `4f20ca8`: run_all mantém **18/18 verdes**.
+
+### Iter 10 — Balanço do worker (continuação delegada)
+- 6 commits neste worker: 6af556e, 60c1c31, 7035a10, 6fe71b4, 7984f5d, 4f20ca8.
+- 14/14 -> **18/18 suítes verdes** (+4 novas suítes de regressão não-tautológicas:
+  test_security_v2, test_dashboard_orphans, test_note_limit_consistency, test_predictive_security).
+- Defeitos REAIS corrigidos: (1) traversal em /related+/compress (S11 incompleto);
+  (2) /graph O(n²) no modo embeddings; (3) painel de Órfãos inútil (FCS);
+  (4) teto de notas semantic≠graph (400 vs 600); (5) predictive.py traversal + VAULT hardcoded;
+  (6) validate_vault.py VAULT hardcoded. Todos com teste que falha ao reverter.
+- CI canônica: 5/5 jobs success em todos os pushes. FCS browser do dashboard validado.
+- Próximo worker (re-dispatch sem perguntar) pode atacar itens menores/arquiteturais:
+  reaproveitar cache de /stats em swarm._agent_metric, ou constante NOTE_LIMIT compartilhada.
 
