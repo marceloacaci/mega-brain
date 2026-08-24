@@ -17,7 +17,7 @@ import os
 import time
 import threading
 
-from constants import NOTE_LIMIT
+from constants import NOTE_LIMIT, prune_vault_dirs
 
 # Mapeamento de pasta-raiz -> tipo (espelha graph._folder_type, mantido aqui
 # para nao acoplar recent ao grafo inteiro).
@@ -48,7 +48,8 @@ def _vault_mtime_signature(vault):
     """
     newest = 0.0
     count = 0
-    for root, _, files in os.walk(vault):
+    for root, dirs, files in os.walk(vault):
+        prune_vault_dirs(dirs)
         if ".obsidian" in root or ".trash" in root:
             continue
         for f in files:
@@ -109,7 +110,8 @@ def recent_notes(vault, limit=10, cutoff_days=None):
     limit = max(1, min(int(limit), NOTE_LIMIT))
     now = time.time()
     rows = []
-    for root, _, files in os.walk(vault):
+    for root, dirs, files in os.walk(vault):
+        prune_vault_dirs(dirs)
         if ".obsidian" in root or ".trash" in root:
             continue
         for f in files:

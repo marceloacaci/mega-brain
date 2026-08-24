@@ -20,3 +20,14 @@ NOTE_LIMIT = 600
 VAULT_SKIP_DIRS = {".obsidian", ".trash", ".git", "tests", "node_modules",
                    "__pycache__", ".claudian", ".hypernovum", ".makemd", ".space"}
 
+
+def prune_vault_dirs(dirs):
+    """Podar (in-place) a lista `dirs` do os.walk removendo pastas que NUNCA
+    sao notas de conteudo do vault. Uso:
+        for root, dirs, files in os.walk(vault):
+            prune_vault_dirs(dirs)
+            ...
+    Evita varrer tests/, node_modules/, .git, etc. (o repo MEGA BRAIN E o vault).
+    """
+    dirs[:] = [d for d in dirs if d not in VAULT_SKIP_DIRS]
+

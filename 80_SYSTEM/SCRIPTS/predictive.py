@@ -23,6 +23,7 @@ import json
 import os
 import re
 import sys
+from constants import prune_vault_dirs
 
 # VAULT resolvido de forma portátil: prefere a env MEGABRAIN_VAULT; senão o diretório
 # pai do repo (este script vive em 80_SYSTEM/SCRIPTS, o vault é o repo raiz). Não usa
@@ -47,7 +48,8 @@ def _vault_path(rel):
 
 def _notes():
     out = []
-    for root, _, files in os.walk(VAULT):
+    for root, dirs, files in os.walk(VAULT):
+        prune_vault_dirs(dirs)
         if ".obsidian" in root:
             continue
         for f in files:

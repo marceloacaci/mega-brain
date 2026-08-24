@@ -20,6 +20,11 @@ sys.path.insert(0, os.path.join(HERE, "..", "80_SYSTEM", "SCRIPTS"))
 import constants
 import semantic
 import graph
+import recent
+import tags
+import vault_stats
+import validate_vault
+import mcp_obsidian_server as srv
 
 
 def _make_vault():
@@ -41,14 +46,21 @@ def _check(vault):
     rels = [r for r, _ in semantic._vault_notes(vault, limit=constants.NOTE_LIMIT)]
     mtime, count = semantic._vault_mtime_signature(vault)
     g_mtime, g_count = graph._vault_signature(vault, limit=constants.NOTE_LIMIT)
-    return rels, count, g_count
+    # modulos restantes que tambem varrem o vault
+    recent_hits = [h["path"] for h in recent.recent_notes(vault, limit=50)]
+    tag_pairs = tags.tag_counts(vault, limit=constants.NOTE_LIMIT)
+    vs_total, vs_by_dir = vault_stats.count_by_dir(vault)
+    val = validate_vault.validate(vault)
+    srv.VAULT = vault
+    srch = srv.search("parcelas")
+    return rels, count, g_count, recent_hits, tag_pairs, vs_total, val, srch
 
 
 def main():
     fails = []
     v = _make_vault()
     try:
-        rels, count, g_count = _check(v)
+        rels, count, g_count, recent_hits, tag_pairs, vs_total, val, srch = _check(v)
         # 1. nenhum path em tests/ ou node_modules/ deve aparecer
         bad = [r for r in rels if r.split("/", 1)[0] in ("tests", "node_modules")]
         if bad:
@@ -66,20 +78,48 @@ def main():
         sug_bad = [s["path"] for s in sug if s["path"].split("/", 1)[0] in ("tests", "node_modules")]
         if sug_bad:
             fails.append("suggest sugeriu dir proibido: %r" % sug_bad)
+        # 5. recent/tags/vault_stats/validate/search tambem devem excluir os dirs
+        def _topbad(lst):
+            return [p for p in lst if p.split("/", 1)[0] in ("tests", "node_modules")]
+        if _topbad(recent_hits):
+            fails.append("recent_notes incluiu dir proibido: %r" % _topbad(recent_hits))
+        tag_bad = [p for p, _ in tag_pairs if p.split("/", 1)[0] in ("tests", "node_modules")]
+        if tag_bad:
+            fails.append("tag_counts incluiu dir proibido: %r" % tag_bad)
+        if vs_total != 1:
+            fails.append("vault_stats.count_by_dir total=%r (esperado 1)" % vs_total)
+        # validate: total_notas deve ser 1 (nota de conteudo), sem tests/
+        if val.get("total_notas", 0) != 1:
+            fails.append("validate_vault total_notas=%r (esperado 1); problemas=%r"
+                         % (val.get("total_notas"), val.get("problemas")))
+        # search: 'parcelas' aparece so' na nota de conteudo, nunca em tests/
+        srch_bad = [h["path"] for h in srch if h["path"].split("/", 1)[0] in ("tests", "node_modules")]
+        if srch_bad:
+            fails.append("search retornou dir proibido: %r" % srch_bad)
+        if not any("10_MEGA_BRAIN/Nota.md" == h["path"] for h in srch):
+            fails.append("search nao achou a nota de conteudo 'parcelas'")
     finally:
         shutil.rmtree(v, ignore_errors=True)
 
     # --- PROVA DE NAO-TAUTOLOGIA: esvaziar o skip set e re-rodar ---
     saved = set(constants.VAULT_SKIP_DIRS)
+    prune_saved = constants.prune_vault_dirs
     constants.VAULT_SKIP_DIRS = set()
     semantic.VAULT_SKIP_DIRS = set()
     graph.VAULT_SKIP_DIRS = set()
+    recent.VAULT_SKIP_DIRS = set()
+    tags.VAULT_SKIP_DIRS = set()
+    vault_stats.prune_vault_dirs = lambda dirs: None
+    validate_vault.prune_vault_dirs = lambda dirs: None
+    srv.prune_vault_dirs = lambda dirs: None
     v2 = _make_vault()
     reg_failed = False
     try:
-        rels2, _, g2 = _check(v2)
+        rels2, _, g2, rh2, tp2, vs2, val2, srch2 = _check(v2)
         bad2 = [r for r in rels2 if r.split("/", 1)[0] in ("tests", "node_modules")]
-        if not bad2:
+        bad_recent = [p for p in rh2 if p.split("/", 1)[0] in ("tests", "node_modules")]
+        bad_srch = [h["path"] for h in srch2 if h["path"].split("/", 1)[0] in ("tests", "node_modules")]
+        if not bad2 and not bad_recent and not bad_srch:
             # sem o skip, os dirs proibidos DEVERIAM reaparecer; se nao aparecerem,
             # o teste nao esta realmente testando o skip -> falha a prova.
             reg_failed = True
@@ -88,6 +128,11 @@ def main():
         constants.VAULT_SKIP_DIRS = saved
         semantic.VAULT_SKIP_DIRS = saved
         graph.VAULT_SKIP_DIRS = saved
+        recent.VAULT_SKIP_DIRS = saved
+        tags.VAULT_SKIP_DIRS = saved
+        vault_stats.prune_vault_dirs = prune_saved
+        validate_vault.prune_vault_dirs = prune_saved
+        srv.prune_vault_dirs = prune_saved
     if reg_failed:
         fails.append("PROVA TAUTOLOGICA: esvaziar VAULT_SKIP_DIRS nao fez tests/ reaparecer "
                      "(teste nao cobre o skip de fato)")

@@ -13,6 +13,7 @@ import os
 import re
 import time
 import threading
+from constants import prune_vault_dirs
 
 # Pastas que devem existir
 REQUIRED_DIRS = ["10_MEGA_BRAIN", "70_MOCS", "80_SYSTEM"]
@@ -24,6 +25,7 @@ def _all_md(root):
     out = []
     for cur, dirs, files in os.walk(root):
         dirs[:] = [d for d in dirs if d not in IGNORE]
+        prune_vault_dirs(dirs)
         for f in files:
             if f.endswith(".md"):
                 out.append(os.path.join(cur, f))
@@ -130,7 +132,8 @@ def _vault_mtime_signature(vault):
     """Retorna (mtime_max, contagem) das notas .md — usado p/ invalidar cache."""
     newest = 0.0
     count = 0
-    for root, _, files in os.walk(vault):
+    for root, dirs, files in os.walk(vault):
+        prune_vault_dirs(dirs)
         if any(ig in root for ig in IGNORE):
             continue
         for f in files:

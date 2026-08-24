@@ -36,6 +36,7 @@ import sys
 import time
 import threading
 import urllib.parse
+from constants import prune_vault_dirs
 from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 
 # VAULT default portatil: prefere env MEGABRAIN_VAULT; senao o diretorio pai do
@@ -160,7 +161,8 @@ def _vault_path(rel):
 def search(q):
     q = q.lower()
     hits = []
-    for root, _, files in os.walk(VAULT):
+    for root, dirs, files in os.walk(VAULT):
+        prune_vault_dirs(dirs)
         if ".obsidian" in root:
             continue
         for f in files:

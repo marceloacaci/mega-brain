@@ -24,7 +24,7 @@ import re
 import time
 import threading
 
-from constants import NOTE_LIMIT
+from constants import NOTE_LIMIT, prune_vault_dirs
 from vault_path import vault_path, VaultPathError
 
 WIKILINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
@@ -60,7 +60,8 @@ def _link_target(raw):
 def _iter_notes(vault, limit=NOTE_LIMIT):
     """Itera (rel, stem, text) das notas .md do vault (ignora .obsidian/.trash)."""
     n = 0
-    for root, _, files in os.walk(vault):
+    for root, dirs, files in os.walk(vault):
+        prune_vault_dirs(dirs)
         if ".obsidian" in root or ".trash" in root:
             continue
         for f in sorted(files):
@@ -140,7 +141,8 @@ def _vault_mtime_signature(vault):
     """Retorna (mtime_max, contagem) das notas .md — invalida o cache."""
     newest = 0.0
     count = 0
-    for root, _, files in os.walk(vault):
+    for root, dirs, files in os.walk(vault):
+        prune_vault_dirs(dirs)
         if ".obsidian" in root or ".trash" in root:
             continue
         for f in files:

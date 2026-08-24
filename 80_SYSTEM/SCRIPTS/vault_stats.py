@@ -8,6 +8,7 @@ entre o swarm e o endpoint de metricas).
 Retorna (total_md, {pasta_raiz: n}) numa unica passada de os.walk.
 """
 import os
+from constants import prune_vault_dirs
 
 
 def count_by_dir(vault):
@@ -18,7 +19,8 @@ def count_by_dir(vault):
     """
     total = 0
     by_dir = {}
-    for root, _, files in os.walk(vault):
+    for root, dirs, files in os.walk(vault):
+        prune_vault_dirs(dirs)
         if ".obsidian" in root:
             continue
         md = [f for f in files if f.endswith(".md")]
@@ -49,7 +51,8 @@ def _vault_mtime_signature(vault):
     """
     newest = 0.0
     count = 0
-    for root, _, files in os.walk(vault):
+    for root, dirs, files in os.walk(vault):
+        prune_vault_dirs(dirs)
         if ".obsidian" in root or ".trash" in root:
             continue
         for f in files:

@@ -17,6 +17,7 @@ import os
 import re
 import time
 import threading
+from constants import prune_vault_dirs
 
 _DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
 
@@ -49,7 +50,8 @@ def _vault_mtime_signature(vault):
     """Retorna (mtime_max, contagem) das notas .md — usado p/ invalidar cache."""
     newest = 0.0
     count = 0
-    for root, _, files in os.walk(vault):
+    for root, dirs, files in os.walk(vault):
+        prune_vault_dirs(dirs)
         if ".obsidian" in root or ".trash" in root:
             continue
         for f in files:
