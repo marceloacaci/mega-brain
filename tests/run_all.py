@@ -41,6 +41,8 @@ SUITE = [
     ("E2E nuvem de tags S15 (rota /tags)", ["python", "tests/e2e_tags.py"]),
     ("Unidade tag() S16 (nao dropa tags)", ["python", "tests/test_tag_func.py"]),
     ("Unidade cache /validate S16 (mtime/TTL)", ["python", "tests/test_validate_cache.py"]),
+    ("Unidade backlinks S17 (alias+codigo+traversal)", ["python", "tests/test_backlinks.py"]),
+    ("E2E backlinks S17 (rota /backlinks)", ["python", "tests/e2e_backlinks.py"]),
     ("E2E integração (fluxo fim-a-fim)", ["python", "tests/e2e_integration.py"]),
 ]
 if not IN_CI:

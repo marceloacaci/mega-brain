@@ -202,6 +202,15 @@
           <h4 class="ui header"><i class="tags icon"></i> Nuvem de Tags (vocabulário do vault)</h4>
           <div id="tagCloud" style="display:flex; flex-wrap:wrap; gap:0.4em; max-height:200px; overflow:auto;">carregando…</div>
         </div>
+
+        <div class="panel">
+          <h4 class="ui header"><i class="linkify icon"></i> Backlinks (quem aponta para a nota)</h4>
+          <div style="display:flex; gap:0.4em; margin-bottom:0.6em;">
+            <input id="blPath" placeholder="ex.: 10_MEGA_BRAIN/Nota.md" style="flex:1; padding:0.4em; border-radius:6px; border:1px solid var(--border); background:var(--panel); color:var(--txt);">
+            <button class="ui button action" id="blBtn"><i class="search icon"></i> Ver</button>
+          </div>
+          <div id="blOut" style="max-height:220px; overflow:auto; color:var(--muted);">informe o caminho de uma nota (ou clique num nó do grafo)</div>
+        </div>
       </div>
     </div>
     <div class="ui tiny message" id="status"></div>
@@ -399,6 +408,30 @@
         }).join('');
       }catch(e){ $('#tagCloud').innerHTML='<span style="color:var(--muted)">tags indisponível</span>'; }
     }
+    // S17: backlinks — quem aponta para uma nota. Contrato do MCP: /backlinks?path=
+    // retorna {path, title, total, backlinks:[{path,title,count}], cached} e
+    // 400 (path invalido/ausente) ou 404 (nota inexistente).
+    async function loadBacklinks(p){
+      const rel = (p !== undefined ? p : $('#blPath').value || '').trim();
+      const out = $('#blOut');
+      if(!rel){ out.innerHTML = '<span style="color:var(--muted)">informe o caminho de uma nota</span>'; return; }
+      if(p !== undefined) $('#blPath').value = rel;
+      out.innerHTML = '<span style="color:var(--muted)">carregando…</span>';
+      try{
+        const r = await fetch(`${MCP}/backlinks?path=${encodeURIComponent(rel)}`);
+        const data = await r.json();
+        if(!r.ok){ out.innerHTML = `<span style="color:var(--muted)">${data.error || 'erro '+r.status}</span>`; return; }
+        const bl = (data.backlinks || []);
+        if(!bl.length){ out.innerHTML = `<span style="color:var(--muted)">nenhum backlink para <b>${data.title || rel}</b> (nota órfã de entrada)</span>`; return; }
+        out.innerHTML = `<div style="margin-bottom:0.4em; color:var(--txt);"><b>${data.total}</b> nota(s) apontam para <b>${data.title || rel}</b></div>`
+          + bl.map(x=>`<div style="padding:0.3em 0; border-bottom:1px solid var(--border);">`
+              + `<span style="color:var(--accent); cursor:pointer;" onclick="loadBacklinks('${x.path.replace(/'/g, "\\'")}')">${x.title}</span>`
+              + ` <span style="color:var(--muted); font-size:0.85em;">${x.path} · ${x.count}×</span></div>`).join('');
+      }catch(e){ out.innerHTML = '<span style="color:var(--muted)">backlinks indisponível</span>'; }
+    }
+    $('#blBtn').addEventListener('click', ()=>loadBacklinks());
+    $('#blPath').addEventListener('keydown', (e)=>{ if(e.key==='Enter') loadBacklinks(); });
+
     $('#exportBtn').addEventListener('click', ()=>{
       const svg=$('#graph').cloneNode(true); svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
       const data='<?xml version="1.0"?>\n'+new XMLSerializer().serializeToString(svg);
