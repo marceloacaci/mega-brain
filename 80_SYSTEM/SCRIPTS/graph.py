@@ -104,22 +104,58 @@ def build_graph(vault, k=3, limit=600):
 
     nodes = [{"id": rel, "label": n["title"], "type": n["type"]} for rel, n in notes.items()]
 
+    # indice de lookup p/ wikilinks: evita _match_rel O(n) por link (O(n*m) total)
+    lookup = {}
+    for rel, n in notes.items():
+        lookup.setdefault(n["stem"].lower(), rel)
+        lookup.setdefault(n["title"].lower(), rel)
+
+    # tokens pre-computados UMA vez por nota (antes: related_notes re-lia e
+    # re-tokenizava o vault inteiro para CADA nota -> O(n^2) de I/O em disco).
+    use_embeddings = bool(os.environ.get("OLLAMA_URL", "").strip())
+    tokens = {}
+    if not use_embeddings:
+        try:
+            from semantic import _tokens as _sem_tokens
+        except Exception:
+            _sem_tokens = None
+        if _sem_tokens is not None:
+            for rel, n in notes.items():
+                tokens[rel] = _sem_tokens(n["text"])
+
     edges = []
     seen = set()
     for rel, n in notes.items():
         # arestas explicitas via [[wikilink]]
         for lm in WIKILINK_RE.findall(n["text"]):
             target = lm.split("|")[0].split("/")[-1].strip().lower()
-            trel = _match_rel(target, notes)
+            trel = lookup.get(target)
             if trel and trel != rel:
                 key = (rel, trel)
                 if key not in seen:
                     seen.add(key)
                     edges.append({"source": rel, "target": trel, "weight": 1.0, "kind": "wikilink"})
-        # arestas semanticas (Jaccard) — import local p/ evitar ciclo
+        # arestas semanticas
         try:
-            from semantic import related_notes
-            for r in related_notes(vault, rel, k=k):
+            if tokens:
+                a = tokens.get(rel) or set()
+                scored = []
+                for orel, b in tokens.items():
+                    if orel == rel or not (a or b):
+                        continue
+                    union = len(a | b)
+                    if not union:
+                        continue
+                    score = len(a & b) / union
+                    if score > 0:
+                        scored.append((score, orel))
+                scored.sort(reverse=True)
+                rel_out = [{"path": orel, "score": round(s, 4)} for s, orel in scored[:k]]
+            else:
+                # caminho com embeddings (Ollama): delega ao semantic.py
+                from semantic import related_notes
+                rel_out = related_notes(vault, rel, k=k, limit=limit)
+            for r in rel_out:
                 trel = r["path"]
                 if trel == rel:
                     continue
